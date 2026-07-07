@@ -1,0 +1,8 @@
+{
+  "orchestrator": "Command Center",
+  "module": "System",
+  "ai_snapshot": "Business Snapshot",
+  "weekly_report": "Weekly Business Report",
+  "module_status": "System Status",
+  "insights": "Business Insights & Recommendations"
+}

@@ -1,5 +1,6 @@
 // @ts-check
 import eslint from '@eslint/js';
+import boundaries from 'eslint-plugin-boundaries';
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
@@ -30,6 +31,36 @@ export default tseslint.config(
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
       "prettier/prettier": ["error", { endOfLine: "auto" }],
+    },
+  },
+  {
+    plugins: { boundaries },
+    settings: {
+      'import/resolver': {
+        typescript: true,
+      },
+      'boundaries/elements': [
+        { type: 'module', pattern: 'src/modules/*/**' },
+        { type: 'core', pattern: 'src/core/*/**' },
+      ],
+    },
+    rules: {
+      'boundaries/dependencies': [
+        2,
+        {
+          default: 'disallow',
+          policies: [
+            {
+              from: { element: { types: 'module' } },
+              allow: { to: { element: { types: 'core' } } },
+            },
+            {
+              from: { element: { types: 'core' } },
+              allow: { to: { element: { types: 'core' } } },
+            },
+          ],
+        },
+      ],
     },
   },
 );

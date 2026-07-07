@@ -15,4 +15,4 @@ Recorded at Phase 0 so this doesn't get re-litigated later.
 ## Live URLs
 
 - Frontend (Vercel): https://bedrock-aios-dashboard.vercel.app/
-- Backend (Railway): _pending Step 8_
+- Backend (Railway): https://backend-production-7f81.up.railway.app/

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ExecutiveOversightModule } from './core/executive-oversight/executive-oversight.module';
 import { ModuleRegistryModule } from './core/module-registry/module-registry.module';
 import { OrchestratorModule } from './core/orchestrator/orchestrator.module';
 import { TenantResolverMiddleware } from './core/tenant-resolver/tenant-resolver.middleware';
@@ -16,6 +17,7 @@ import { ReviewGenerationModule } from './modules/review-generation/review-gener
   imports: [
     ModuleRegistryModule,
     OrchestratorModule,
+    ExecutiveOversightModule,
     ReviewGenerationModule,
     MissedCallTextbackModule,
   ],

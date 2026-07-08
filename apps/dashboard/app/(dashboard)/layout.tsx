@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase/client";
 const NAV_LINKS = [
   { href: "/", label: "Business Snapshot" },
   { href: "/command-center", label: "Command Center" },
+  { href: "/business-reports", label: "Business Reports" },
   { href: "/installed-systems", label: "Installed Systems" },
   { href: "/notifications", label: "Notifications" },
   { href: "/client-settings", label: "Client Settings" },

@@ -6,16 +6,19 @@ import {
 } from './ai-client.interface';
 import type { AiClient } from './ai-client.interface';
 
-// Real AiClient backed by the Anthropic Messages API. Model comes from
-// ORCHESTRATOR_MODEL (never hardcoded at the call site); auth comes from
-// ANTHROPIC_API_KEY, which the SDK reads from the environment itself.
+// Real AiClient backed by the Anthropic Messages API, shared by every caller
+// that needs the model (the Command Center orchestrator and the Executive
+// Oversight report engine). The model is supplied by the caller's
+// constructor -- each caller reads its own env var (ORCHESTRATOR_MODEL,
+// REPORT_MODEL) so the model is never hardcoded at the call site. Auth comes
+// from ANTHROPIC_API_KEY, which the SDK reads from the environment itself.
 // claude-sonnet-5 notes: adaptive thinking is on by default (thinking blocks
 // may appear in content and are passed through untouched so the loop can echo
 // them back), and sampling params like temperature are rejected -- none sent.
 export class AnthropicAiClient implements AiClient {
   private readonly client = new Anthropic();
 
-  private readonly model = process.env.ORCHESTRATOR_MODEL ?? 'claude-sonnet-5';
+  constructor(private readonly model: string) {}
 
   async createMessage(params: AiCreateMessageParams): Promise<AiResponse> {
     const response = await this.client.messages.create({

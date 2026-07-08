@@ -2,9 +2,12 @@ import { randomUUID } from 'crypto';
 import { Client } from 'pg';
 import { ModuleContract } from '../module-registry/module-contract';
 import { ModuleRegistryService } from '../module-registry/module-registry.service';
-import { AiResponse, AiToolResultBlock } from './ai-client.interface';
+import {
+  AiResponse,
+  AiToolResultBlock,
+} from '../../shared/ai/ai-client.interface';
 import { OrchestratorService } from './orchestrator.service';
-import { StubAiClient } from './stub-ai-client';
+import { StubAiClient } from '../../shared/ai/stub-ai-client';
 
 function text(t: string): { type: 'text'; text: string } {
   return { type: 'text', text: t };

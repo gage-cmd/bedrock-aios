@@ -1,15 +1,15 @@
 import { Injectable, Optional, OnModuleDestroy } from '@nestjs/common';
 import { Pool } from 'pg';
 import { ModuleRegistryService } from '../module-registry/module-registry.service';
-import { AnthropicAiClient } from './anthropic-ai-client';
+import { AnthropicAiClient } from '../../shared/ai/anthropic-ai-client';
 import {
   AiMessageParam,
   AiTool,
   AiToolResultBlock,
   isTextBlock,
   isToolUseBlock,
-} from './ai-client.interface';
-import type { AiClient } from './ai-client.interface';
+} from '../../shared/ai/ai-client.interface';
+import type { AiClient } from '../../shared/ai/ai-client.interface';
 
 // One orchestrator turn may fan out to several modules; a single slow module
 // must degrade into a partial answer, never hang the whole request. Read at
@@ -86,7 +86,9 @@ export class OrchestratorService implements OnModuleDestroy {
     private readonly registry: ModuleRegistryService,
     @Optional() aiClient?: AiClient,
   ) {
-    this.ai = aiClient ?? new AnthropicAiClient();
+    this.ai =
+      aiClient ??
+      new AnthropicAiClient(process.env.ORCHESTRATOR_MODEL ?? 'claude-sonnet-5');
   }
 
   async ask(tenantId: string, question: string): Promise<{ answer: string }> {

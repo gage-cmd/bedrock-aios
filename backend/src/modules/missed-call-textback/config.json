@@ -1,0 +1,6 @@
+{
+  "moduleKey": "missed-call-textback",
+  "name": "Missed-Call Text-Back",
+  "description": "Texts callers back automatically the moment a call goes unanswered, so a missed call never becomes a lost customer.",
+  "version": "0.1.0"
+}

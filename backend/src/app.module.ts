@@ -8,10 +8,15 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ModuleRegistryModule } from './core/module-registry/module-registry.module';
 import { TenantResolverMiddleware } from './core/tenant-resolver/tenant-resolver.middleware';
+import { MissedCallTextbackModule } from './modules/missed-call-textback/missed-call-textback.module';
 import { ReviewGenerationModule } from './modules/review-generation/review-generation.module';
 
 @Module({
-  imports: [ModuleRegistryModule, ReviewGenerationModule],
+  imports: [
+    ModuleRegistryModule,
+    ReviewGenerationModule,
+    MissedCallTextbackModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

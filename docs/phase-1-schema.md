@@ -103,4 +103,4 @@ create policy "tenant_isolation" on <table>
   using (tenant_id = (auth.jwt() ->> 'tenant_id')::uuid);
 ```
 
-This requires `tenant_id` to be embedded as a custom claim in the JWT issued at login (see Step 6) — without it, `auth.jwt() ->> 'tenant_id'` is null and the policy blocks all rows, fail-closed rather than fail-open.
+This requires `tenant_id` to be embedded as a custom claim in the JWT issued at login (see Step 6) — without it, `auth.jwt() ->> 'tenant_id'` is null and the policy blocks all rows, fail-closed rather than fail-open. That claim is stamped by the `custom_access_token_hook` access-token hook; see [Access-Token Hook](auth-access-token-hook.md) for the captured function (migration 0017) and the manual Auth-settings registration step it still requires.

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AuthModule } from './core/auth/auth.module';
 import { ExecutiveOversightModule } from './core/executive-oversight/executive-oversight.module';
 import { ModuleRegistryModule } from './core/module-registry/module-registry.module';
 import { OrchestratorModule } from './core/orchestrator/orchestrator.module';
@@ -15,6 +16,7 @@ import { ReviewGenerationModule } from './modules/review-generation/review-gener
 
 @Module({
   imports: [
+    AuthModule,
     ModuleRegistryModule,
     OrchestratorModule,
     ExecutiveOversightModule,

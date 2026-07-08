@@ -3,6 +3,7 @@
 import { useEffect, useState, type ComponentType } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { ModuleErrorBoundary } from "@/components/module-widgets/ModuleErrorBoundary";
+import { ReviewGenerationWidget } from "@/components/module-widgets/ReviewGenerationWidget";
 
 interface EnabledModule {
   moduleKey: string;
@@ -18,6 +19,7 @@ const WIDGET_REGISTRY: Record<
   ComponentType<{ config: Record<string, unknown> }>
 > = {
   // "test-module": TestModuleWidget,
+  "review-generation": ReviewGenerationWidget,
 };
 
 // Fetches the enabled modules for the logged-in tenant and dynamically

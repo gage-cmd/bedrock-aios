@@ -10,6 +10,9 @@ const NAV_LINKS = [
   { href: "/installed-systems", label: "Installed Systems" },
   { href: "/notifications", label: "Notifications" },
   { href: "/client-settings", label: "Client Settings" },
+  { href: "/review-generation", label: "Review Contacts" },
+  { href: "/review-generation/activity", label: "Review Activity" },
+  { href: "/review-generation/settings", label: "Review Settings" },
 ];
 
 // Guards every route in this group: redirects to /login if there's no

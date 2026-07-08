@@ -1,0 +1,1 @@
+Hi {customer_name}! Thanks so much for choosing {business_name}. We'd really appreciate a quick review -- it means a lot to a small business like ours.

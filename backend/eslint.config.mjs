@@ -54,6 +54,16 @@ export default tseslint.config(
               from: { element: { types: 'module' } },
               allow: { to: { element: { types: 'core' } } },
             },
+            // The 'module' type matches src/modules/*/** for every module,
+            // not just one -- so this also permits importing a *different*
+            // module's files, not only your own. There's no capture-group
+            // support wired up here yet to narrow it to "same module only".
+            // Needed so a module's own files (e.g. a controller under its
+            // api/ folder) can import its own service.
+            {
+              from: { element: { types: 'module' } },
+              allow: { to: { element: { types: 'module' } } },
+            },
             {
               from: { element: { types: 'core' } },
               allow: { to: { element: { types: 'core' } } },

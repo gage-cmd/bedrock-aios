@@ -1,0 +1,12 @@
+{
+  "workflowKey": "send-review-request",
+  "trigger": "manual",
+  "description": "Manually triggered from the dashboard's Contacts page. No automated triggers in v1 -- see docs/modules/review-generation-scope.md.",
+  "steps": [
+    "Look up the contact and confirm it belongs to the requesting tenant",
+    "Create a review_requests row with a securely random token",
+    "Render the SMS body from the tenant's configured template",
+    "Send the SMS via the shared messaging service",
+    "Write an activity_log entry (event_type: review_request_sent)"
+  ]
+}

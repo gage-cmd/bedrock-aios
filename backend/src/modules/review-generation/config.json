@@ -1,0 +1,6 @@
+{
+  "moduleKey": "review-generation",
+  "name": "Review Generation",
+  "description": "Requests customer reviews over SMS, routes happy customers to Google, and catches negative feedback privately before it goes public.",
+  "version": "0.1.0"
+}

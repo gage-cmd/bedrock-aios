@@ -7,6 +7,7 @@ import {
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ModuleRegistryModule } from './core/module-registry/module-registry.module';
+import { OrchestratorModule } from './core/orchestrator/orchestrator.module';
 import { TenantResolverMiddleware } from './core/tenant-resolver/tenant-resolver.middleware';
 import { MissedCallTextbackModule } from './modules/missed-call-textback/missed-call-textback.module';
 import { ReviewGenerationModule } from './modules/review-generation/review-generation.module';
@@ -14,6 +15,7 @@ import { ReviewGenerationModule } from './modules/review-generation/review-gener
 @Module({
   imports: [
     ModuleRegistryModule,
+    OrchestratorModule,
     ReviewGenerationModule,
     MissedCallTextbackModule,
   ],

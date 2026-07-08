@@ -147,6 +147,19 @@ export class MissedCallTextbackService implements OnModuleDestroy {
     ];
   }
 
+  // Read-only intents the orchestrator may route to. log-missed-call is
+  // deliberately absent -- the orchestrator answers questions, it must never
+  // send a text-back on its own.
+  getQueryableIntents(): { intent: string; description: string }[] {
+    return [
+      {
+        intent: 'get-recent-missed-calls',
+        description:
+          'List recent missed calls for this business, including whether an automatic text-back was sent and what it said.',
+      },
+    ];
+  }
+
   private async getConfig(tenantId: string): Promise<Record<string, unknown>> {
     const result = await this.pool.query<{ config: Record<string, unknown> }>(
       `select config from module_manifest where tenant_id = $1 and module_key = 'missed-call-textback'`,

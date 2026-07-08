@@ -268,6 +268,24 @@ export class ReviewGenerationService implements OnModuleDestroy {
     ];
   }
 
+  // Read-only intents the orchestrator may route to. send-review-request and
+  // create-contact are deliberately absent -- the orchestrator answers
+  // questions, it must never message a customer or write CRM data on its own.
+  getQueryableIntents(): { intent: string; description: string }[] {
+    return [
+      {
+        intent: 'get-recent-requests',
+        description:
+          'List recent review requests sent to customers, with their status and any rating received.',
+      },
+      {
+        intent: 'get-recent-responses',
+        description:
+          'List recent completed review responses, including star rating and any written feedback.',
+      },
+    ];
+  }
+
   private async getConfig(tenantId: string): Promise<Record<string, unknown>> {
     const result = await this.pool.query<{ config: Record<string, unknown> }>(
       `select config from module_manifest where tenant_id = $1 and module_key = 'review-generation'`,

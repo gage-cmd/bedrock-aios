@@ -4,6 +4,7 @@ import { useEffect, useState, type ComponentType } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { ModuleErrorBoundary } from "@/components/module-widgets/ModuleErrorBoundary";
 import { ReviewGenerationWidget } from "@/components/module-widgets/ReviewGenerationWidget";
+import { MissedCallTextbackWidget } from "@/components/module-widgets/MissedCallTextbackWidget";
 
 interface EnabledModule {
   moduleKey: string;
@@ -20,6 +21,7 @@ const WIDGET_REGISTRY: Record<
 > = {
   // "test-module": TestModuleWidget,
   "review-generation": ReviewGenerationWidget,
+  "missed-call-textback": MissedCallTextbackWidget,
 };
 
 // Fetches the enabled modules for the logged-in tenant and dynamically

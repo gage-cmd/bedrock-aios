@@ -14,6 +14,8 @@ const NAV_LINKS = [
   { href: "/review-generation", label: "Review Contacts" },
   { href: "/review-generation/activity", label: "Review Activity" },
   { href: "/review-generation/settings", label: "Review Settings" },
+  { href: "/missed-call-textback/activity", label: "Missed-Call Activity" },
+  { href: "/missed-call-textback/settings", label: "Missed-Call Settings" },
 ];
 
 // Guards every route in this group: redirects to /login if there's no

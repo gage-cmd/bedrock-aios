@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Missed-Call Text-Back Settings",
+  "type": "object",
+  "properties": {
+    "businessName": {
+      "type": "string",
+      "title": "Business name",
+      "description": "Used to sign the text-back sent to callers."
+    },
+    "destinationNumber": {
+      "type": "string",
+      "title": "Forwarding number",
+      "description": "The line an incoming call rings before it counts as missed (e.g. the front desk). Consumed by the Twilio voice webhooks."
+    },
+    "ringTimeoutSeconds": {
+      "type": "integer",
+      "title": "Ring timeout (seconds)",
+      "description": "How long the forwarding number rings before the call is treated as missed and the text-back fires.",
+      "minimum": 5,
+      "maximum": 60,
+      "default": 20
+    },
+    "textBackTemplate": {
+      "type": "string",
+      "title": "Text-back message template",
+      "description": "Supports the {business_name} placeholder. Sent automatically the moment a call goes unanswered.",
+      "default": "Hi! You just called {business_name} and we couldn't pick up. Reply here and we'll get right back to you."
+    }
+  },
+  "required": ["businessName", "destinationNumber", "textBackTemplate"]
+}

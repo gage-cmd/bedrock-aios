@@ -65,8 +65,8 @@ export class MissedCallTextbackService implements OnModuleDestroy {
 
     const config = await this.getConfig(tenantId);
     const template =
-      typeof config.textbackTemplate === 'string'
-        ? config.textbackTemplate
+      typeof config.textBackTemplate === 'string'
+        ? config.textBackTemplate
         : DEFAULT_TEXTBACK_TEMPLATE;
     const businessName =
       typeof config.businessName === 'string' ? config.businessName : 'us';

@@ -36,6 +36,14 @@ export class AppModule implements NestModule {
         // link; access is scoped entirely by the unguessable token, never a
         // tenant JWT. See PublicReviewController / PublicReviewService.
         { path: 'public/review/:token', method: RequestMethod.ALL },
+        // Twilio Voice webhooks (Step 3). Machine-to-machine: called by
+        // Twilio's infrastructure, never a browser with a JWT. They carry no
+        // tenant token; authenticity is enforced instead by TwilioSignatureGuard
+        // (X-Twilio-Signature verification) on VoiceController. Listed
+        // explicitly here so they are a deliberate allow-list decision, not
+        // reachable-by-omission.
+        { path: 'public/voice/incoming', method: RequestMethod.POST },
+        { path: 'public/voice/status', method: RequestMethod.POST },
         // Root health check -- unauthenticated by design (hosting hits it).
         { path: '/', method: RequestMethod.GET },
       )

@@ -100,6 +100,19 @@ export class MessagingService implements OnModuleDestroy {
     return inserted.rows[0];
   }
 
+  // Resolves the tenant that owns an inbound Twilio number (the "To" of an
+  // incoming call). Returns null for an unrecognized number so callers can
+  // handle it safely rather than throwing. Scoped to active numbers only.
+  async findTenantByPhoneNumber(
+    phoneNumber: string,
+  ): Promise<{ tenantId: string } | null> {
+    const { rows } = await this.pool.query<{ tenant_id: string }>(
+      `select tenant_id from shared_messaging.tenant_phone_numbers where phone_number = $1 and status = 'active' limit 1`,
+      [phoneNumber],
+    );
+    return rows[0] ? { tenantId: rows[0].tenant_id } : null;
+  }
+
   async sendSms(
     tenantId: string,
     to: string,

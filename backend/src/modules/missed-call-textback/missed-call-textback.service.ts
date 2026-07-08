@@ -23,6 +23,13 @@ export interface SnapshotResult {
 const DEFAULT_TEXTBACK_TEMPLATE =
   "Hi! You just called {business_name} and we couldn't pick up. Reply here and we'll get right back to you.";
 
+export const DEFAULT_RING_TIMEOUT_SECONDS = 20;
+
+export interface DialSettings {
+  destinationNumber: string | null;
+  ringTimeoutSeconds: number;
+}
+
 function renderTemplate(template: string, businessName: string): string {
   return template.replace(/{business_name}/g, businessName);
 }
@@ -158,6 +165,26 @@ export class MissedCallTextbackService implements OnModuleDestroy {
           'List recent missed calls for this business, including whether an automatic text-back was sent and what it said.',
       },
     ];
+  }
+
+  // Dial settings the Twilio voice webhook needs to forward an incoming call:
+  // where to ring (destinationNumber) and for how long before it counts as
+  // missed (ringTimeoutSeconds, defaulting to 20). destinationNumber is null
+  // when the tenant hasn't configured one yet, so the webhook can decline to
+  // dial rather than forward to nowhere.
+  async getDialSettings(tenantId: string): Promise<DialSettings> {
+    const config = await this.getConfig(tenantId);
+    const destinationNumber =
+      typeof config.destinationNumber === 'string' &&
+      config.destinationNumber.length > 0
+        ? config.destinationNumber
+        : null;
+    const ringTimeoutSeconds =
+      typeof config.ringTimeoutSeconds === 'number' &&
+      config.ringTimeoutSeconds > 0
+        ? config.ringTimeoutSeconds
+        : DEFAULT_RING_TIMEOUT_SECONDS;
+    return { destinationNumber, ringTimeoutSeconds };
   }
 
   private async getConfig(tenantId: string): Promise<Record<string, unknown>> {

@@ -56,9 +56,9 @@ export default function NotificationsPage() {
       )}
 
       {notifications?.length === 0 && (
-        <p className="mt-4 text-[var(--color-text-secondary)] dark:text-zinc-400">
+        <div className="mt-4 rounded-lg border border-dashed border-[var(--color-border)] p-12 text-center text-[var(--color-text-secondary)]">
           No notifications.
-        </p>
+        </div>
       )}
 
       {notifications && notifications.length > 0 && (

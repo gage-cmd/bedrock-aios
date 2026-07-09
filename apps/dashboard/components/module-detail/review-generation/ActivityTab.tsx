@@ -45,9 +45,9 @@ export function ActivityTab() {
       )}
 
       {rows?.length === 0 && (
-        <p className="text-[var(--color-text-secondary)]">
+        <div className="rounded-lg border border-dashed border-[var(--color-border)] p-12 text-center text-[var(--color-text-secondary)]">
           No review requests sent yet.
-        </p>
+        </div>
       )}
 
       {rows && rows.length > 0 && (

@@ -62,9 +62,9 @@ export default function InstalledSystemsPage() {
       )}
 
       {modules?.length === 0 && (
-        <p className="mt-4 text-[var(--color-text-secondary)]">
+        <div className="mt-8 rounded-lg border border-dashed border-[var(--color-border)] p-12 text-center text-[var(--color-text-secondary)]">
           No systems installed yet.
-        </p>
+        </div>
       )}
 
       {modules && modules.length > 0 && (

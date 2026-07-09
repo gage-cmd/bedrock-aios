@@ -120,7 +120,9 @@ export function ContactsTab() {
       )}
 
       {contacts?.length === 0 && (
-        <p className="mt-8 text-[var(--color-text-secondary)]">No contacts yet.</p>
+        <div className="mt-8 rounded-lg border border-dashed border-[var(--color-border)] p-12 text-center text-[var(--color-text-secondary)]">
+          No contacts yet.
+        </div>
       )}
 
       {contacts && contacts.length > 0 && (

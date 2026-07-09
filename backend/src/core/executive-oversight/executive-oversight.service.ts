@@ -400,8 +400,13 @@ export class ExecutiveOversightService implements OnModuleDestroy {
   // --- Read paths for the dashboard (tenant-JWT-scoped in the controller) ---
 
   async listReports(tenantId: string): Promise<ReportListItem[]> {
+    // week_of::text -- node-postgres deserializes `date` columns into JS
+    // Date objects by default, which JSON.stringify turns into full
+    // timestamps ("2026-06-29T00:00:00.000Z"). The dashboard expects the
+    // plain "YYYY-MM-DD" string these types promise, so cast explicitly
+    // rather than relying on driver defaults.
     const result = await this.pool.query<ReportListItem>(
-      `select id, week_of, generated_at, status
+      `select id, week_of::text as week_of, generated_at, status
          from executive_oversight.weekly_reports
          where tenant_id = $1
          order by week_of desc`,
@@ -415,7 +420,7 @@ export class ExecutiveOversightService implements OnModuleDestroy {
     reportId: string,
   ): Promise<WeeklyReportRow | null> {
     const result = await this.pool.query<WeeklyReportRow>(
-      `select id, week_of, generated_at, status, report_data
+      `select id, week_of::text as week_of, generated_at, status, report_data
          from executive_oversight.weekly_reports
          where tenant_id = $1 and id = $2`,
       [tenantId, reportId],

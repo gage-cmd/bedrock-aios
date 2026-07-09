@@ -56,8 +56,10 @@ export default function CommandCenterPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col p-8">
-      <h1 className="text-2xl font-semibold">Command Center</h1>
-      <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+      <h1 className="font-[family-name:var(--font-display)] text-3xl font-medium text-[var(--color-ink)]">
+        Command Center
+      </h1>
+      <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
         Ask anything about how your business is performing.
       </p>
 
@@ -68,7 +70,7 @@ export default function CommandCenterPage() {
               <button
                 key={s}
                 onClick={() => void send(s)}
-                className="rounded-full border border-black/[.08] px-4 py-2 text-sm text-zinc-600 hover:bg-black/[.04] dark:border-white/[.145] dark:text-zinc-300 dark:hover:bg-white/[.08]"
+                className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-card)] px-4 py-2 text-sm text-[var(--color-text-secondary)] hover:border-[var(--color-accent-primary)] hover:text-[var(--color-accent-primary)]"
               >
                 {s}
               </button>
@@ -81,10 +83,10 @@ export default function CommandCenterPage() {
             key={i}
             className={
               m.role === "user"
-                ? "self-end rounded-2xl rounded-br-sm bg-zinc-900 px-4 py-2.5 text-sm text-white dark:bg-white dark:text-zinc-900"
+                ? "self-end rounded-2xl rounded-br-sm bg-[var(--color-accent-primary)] px-4 py-2.5 text-sm text-white"
                 : m.isError
-                  ? "self-start rounded-2xl rounded-bl-sm bg-red-50 px-4 py-2.5 text-sm text-red-700 dark:bg-red-950 dark:text-red-300"
-                  : "self-start whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-black/[.04] px-4 py-2.5 text-sm text-zinc-800 dark:bg-white/[.08] dark:text-zinc-200"
+                  ? "self-start rounded-2xl rounded-bl-sm border border-[var(--color-status-attention)]/30 bg-[var(--color-surface-card)] px-4 py-2.5 text-sm text-[var(--color-status-attention)]"
+                  : "self-start whitespace-pre-wrap rounded-2xl rounded-bl-sm border border-[var(--color-border)] bg-[var(--color-surface-card)] px-4 py-2.5 text-sm text-[var(--color-ink)]"
             }
           >
             {m.text}
@@ -92,7 +94,7 @@ export default function CommandCenterPage() {
         ))}
 
         {busy && (
-          <div className="self-start rounded-2xl rounded-bl-sm bg-black/[.04] px-4 py-2.5 text-sm text-zinc-400 dark:bg-white/[.08]">
+          <div className="self-start rounded-2xl rounded-bl-sm border border-[var(--color-border)] bg-[var(--color-surface-card)] px-4 py-2.5 text-sm text-[var(--color-text-secondary)]">
             Checking your numbers…
           </div>
         )}
@@ -104,13 +106,13 @@ export default function CommandCenterPage() {
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           placeholder="Ask about your reviews, missed calls, or this week's results"
-          className="flex-1 rounded-xl border border-black/[.08] bg-transparent px-4 py-3 text-sm outline-none focus:border-zinc-400 dark:border-white/[.145] dark:focus:border-zinc-500"
+          className="flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-card)] px-4 py-3 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-primary)]"
           disabled={busy}
         />
         <button
           type="submit"
           disabled={busy || !question.trim()}
-          className="rounded-xl bg-zinc-900 px-5 py-3 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-zinc-900"
+          className="rounded-xl bg-[var(--color-accent-primary)] px-5 py-3 text-sm font-medium text-white disabled:opacity-40"
         >
           Ask
         </button>

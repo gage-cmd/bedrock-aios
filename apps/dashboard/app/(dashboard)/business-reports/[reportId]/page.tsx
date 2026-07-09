@@ -53,21 +53,21 @@ function Section({
   const trimmed = (value ?? "").trim();
   return (
     <section className="mt-6">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">
         {label}
       </h2>
       {trimmed.length === 0 ? (
-        <p className="mt-2 text-sm text-zinc-400 dark:text-zinc-500">
+        <p className="mt-2 text-sm text-[var(--color-ink-muted)]">
           Nothing to report this week.
         </p>
       ) : list ? (
-        <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-black dark:text-zinc-100">
+        <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-[var(--color-ink)]">
           {lines(trimmed).map((line, i) => (
             <li key={i}>{line}</li>
           ))}
         </ul>
       ) : (
-        <p className="mt-2 whitespace-pre-line text-black dark:text-zinc-100">
+        <p className="mt-2 whitespace-pre-line text-[var(--color-ink)]">
           {trimmed}
         </p>
       )}
@@ -110,27 +110,27 @@ export default function BusinessReportDetailPage({
     <div className="flex-1 p-8">
       <Link
         href="/business-reports"
-        className="text-sm text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-zinc-50"
+        className="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent-primary)]"
       >
         &larr; All reports
       </Link>
 
       {error && (
-        <p className="mt-4 text-sm text-red-600 dark:text-red-400">{error}</p>
+        <p className="mt-4 text-sm text-[var(--color-status-attention)]">{error}</p>
       )}
 
       {report === null && !error && (
-        <p className="mt-4 text-zinc-500 dark:text-zinc-400">Loading...</p>
+        <p className="mt-4 text-[var(--color-text-secondary)]">Loading...</p>
       )}
 
       {report && (
         <>
-          <h1 className="mt-2 text-2xl font-semibold text-black dark:text-zinc-50">
+          <h1 className="mt-2 font-[family-name:var(--font-display)] text-3xl font-medium text-[var(--color-ink)]">
             Week of {formatWeek(report.week_of)}
           </h1>
 
           {report.status === "failed" && (
-            <p className="mt-4 rounded-lg border border-amber-500/40 p-4 text-sm text-amber-700 dark:text-amber-400">
+            <p className="mt-4 rounded-lg border border-[var(--color-status-attention)]/40 p-4 text-sm text-[var(--color-status-attention)]">
               This week&apos;s report could not be prepared. The next one will be
               ready on schedule.
             </p>

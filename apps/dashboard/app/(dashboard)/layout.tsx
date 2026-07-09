@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
+import { SystemStatusStrip } from "@/components/SystemStatusStrip";
 
 const NAV_LINKS = [
   { href: "/", label: "Business Snapshot" },
@@ -28,6 +29,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
@@ -62,24 +64,39 @@ export default function DashboardLayout({
 
   return (
     <div className="flex flex-1">
-      <nav className="flex w-56 flex-col gap-1 border-r border-black/[.08] p-4 dark:border-white/[.145]">
-        {NAV_LINKS.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className="rounded-md px-3 py-2 text-sm text-zinc-700 hover:bg-black/[.04] dark:text-zinc-300 dark:hover:bg-white/[.08]"
-          >
-            {link.label}
-          </Link>
-        ))}
+      <nav className="flex w-60 flex-col gap-1 bg-[var(--color-ink)] p-5">
+        <div className="mb-6 px-3">
+          <p className="font-[family-name:var(--font-display)] text-lg font-medium text-white">
+            Bedrock AI
+          </p>
+        </div>
+        {NAV_LINKS.map((link) => {
+          const active = pathname === link.href;
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={
+                active
+                  ? "rounded-md bg-white/10 px-3 py-2 text-sm font-medium text-white"
+                  : "rounded-md px-3 py-2 text-sm text-[var(--color-ink-muted)] hover:bg-white/5 hover:text-white"
+              }
+            >
+              {link.label}
+            </Link>
+          );
+        })}
         <button
           onClick={() => supabase.auth.signOut()}
-          className="mt-4 rounded-md px-3 py-2 text-left text-sm text-zinc-500 hover:bg-black/[.04] dark:text-zinc-400 dark:hover:bg-white/[.08]"
+          className="mt-4 rounded-md px-3 py-2 text-left text-sm text-[var(--color-ink-muted)] hover:bg-white/5 hover:text-white"
         >
           Sign out
         </button>
       </nav>
-      <main className="flex flex-1">{children}</main>
+      <main className="flex flex-1 flex-col bg-[var(--color-surface)]">
+        <SystemStatusStrip />
+        <div className="flex flex-1">{children}</div>
+      </main>
     </div>
   );
 }

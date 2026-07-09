@@ -45,25 +45,25 @@ export function MissedCallTextbackWidget() {
   }, []);
 
   return (
-    <div className="rounded-lg border border-black/[.08] p-4 dark:border-white/[.145]">
-      <p className="font-medium text-black dark:text-zinc-50">Missed-Call Text-Back</p>
+    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-card)] p-5">
+      <p className="text-sm font-medium text-[var(--color-ink)]">Missed-Call Text-Back</p>
 
       {error && (
-        <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+        <p className="mt-2 text-sm text-[var(--color-status-attention)]">
           Could not load snapshot.
         </p>
       )}
 
       {!error && !snapshot && (
-        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Loading...</p>
+        <p className="mt-2 text-sm text-[var(--color-text-secondary)]">Loading...</p>
       )}
 
       {snapshot && (
         <>
-          <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
             {snapshot.metric}
           </p>
-          <p className="text-lg font-semibold text-black dark:text-zinc-50">
+          <p className="font-metric text-2xl font-medium text-[var(--color-accent-gold)]">
             {snapshot.value}
           </p>
         </>

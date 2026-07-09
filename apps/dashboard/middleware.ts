@@ -21,6 +21,7 @@ import type { NextRequest } from "next/server";
 const PUBLIC_ROUTE_PATTERNS: RegExp[] = [
   /^\/review\/[^/]+$/, // customer-facing review funnel
   /^\/login$/,
+  /^\/set-password$/, // invite-link landing page; authorized by the link's token, not a session
 ];
 
 function isPublicRoute(pathname: string): boolean {

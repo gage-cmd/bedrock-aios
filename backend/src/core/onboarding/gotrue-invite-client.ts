@@ -20,18 +20,25 @@ export class GoTrueInviteClient implements InviteClient {
       );
     }
 
-    const res = await fetch(
-      new URL('/auth/v1/invite', process.env.SUPABASE_URL),
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: serviceRoleKey,
-          Authorization: `Bearer ${serviceRoleKey}`,
-        },
-        body: JSON.stringify({ email }),
-      },
+    // redirect_to sends the invite link straight to the page that lets the
+    // new owner set their password (apps/dashboard/app/set-password) --
+    // without it GoTrue falls back to the project's default Site URL, which
+    // has nowhere to complete the invite.
+    const inviteUrl = new URL('/auth/v1/invite', process.env.SUPABASE_URL);
+    inviteUrl.searchParams.set(
+      'redirect_to',
+      new URL('/set-password', process.env.DASHBOARD_URL).toString(),
     );
+
+    const res = await fetch(inviteUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+      body: JSON.stringify({ email }),
+    });
 
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as {

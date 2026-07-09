@@ -162,7 +162,7 @@ export default function ReviewFunnelPage() {
               type="button"
               disabled={submitting}
               onClick={() => void submit(rating, feedback)}
-              className="mt-4 w-full rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-50 dark:hover:bg-[#ccc]"
+              className="mt-4 w-full rounded-full bg-[var(--color-accent-primary)] px-5 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               {submitting ? "Sending..." : "Send feedback"}
             </button>

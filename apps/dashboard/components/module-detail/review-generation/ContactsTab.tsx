@@ -11,7 +11,10 @@ interface Contact {
   created_at: string;
 }
 
-export default function ReviewContactsPage() {
+const inputClasses =
+  "rounded-md border border-[var(--color-border)] bg-[var(--color-surface-card)] px-3 py-2 text-[var(--color-ink)]";
+
+export function ContactsTab() {
   const [contacts, setContacts] = useState<Contact[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -83,46 +86,41 @@ export default function ReviewContactsPage() {
     }
   }
 
-  const inputClasses =
-    "rounded-md border border-black/[.08] px-3 py-2 text-black dark:border-white/[.145] dark:bg-black dark:text-zinc-50";
-
   return (
-    <div className="flex-1 p-8">
-      <h1 className="text-2xl font-semibold text-black dark:text-zinc-50">Contacts</h1>
-
+    <div>
       <form
         onSubmit={handleAddContact}
-        className="mt-6 flex max-w-lg flex-wrap items-end gap-3"
+        className="flex max-w-lg flex-wrap items-end gap-3"
       >
-        <label className="flex flex-col gap-1 text-sm text-zinc-700 dark:text-zinc-300">
+        <label className="flex flex-col gap-1 text-sm text-[var(--color-text-secondary)]">
           Name
           <input ref={nameRef} required className={inputClasses} />
         </label>
-        <label className="flex flex-col gap-1 text-sm text-zinc-700 dark:text-zinc-300">
+        <label className="flex flex-col gap-1 text-sm text-[var(--color-text-secondary)]">
           Phone
           <input ref={phoneRef} placeholder="+15551234567" className={inputClasses} />
         </label>
-        <label className="flex flex-col gap-1 text-sm text-zinc-700 dark:text-zinc-300">
+        <label className="flex flex-col gap-1 text-sm text-[var(--color-text-secondary)]">
           Email
           <input ref={emailRef} type="email" className={inputClasses} />
         </label>
         <button
           type="submit"
           disabled={adding}
-          className="rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-50 dark:hover:bg-[#ccc]"
+          className="rounded-full bg-[var(--color-accent-primary)] px-5 py-2 text-sm font-medium text-white disabled:opacity-50"
         >
           {adding ? "Adding..." : "Add contact"}
         </button>
       </form>
 
-      {error && <p className="mt-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p className="mt-4 text-sm text-[var(--color-status-attention)]">{error}</p>}
 
       {contacts === null && !error && (
-        <p className="mt-8 text-zinc-500 dark:text-zinc-400">Loading...</p>
+        <p className="mt-8 text-[var(--color-text-secondary)]">Loading...</p>
       )}
 
       {contacts?.length === 0 && (
-        <p className="mt-8 text-zinc-500 dark:text-zinc-400">No contacts yet.</p>
+        <p className="mt-8 text-[var(--color-text-secondary)]">No contacts yet.</p>
       )}
 
       {contacts && contacts.length > 0 && (
@@ -130,11 +128,11 @@ export default function ReviewContactsPage() {
           {contacts.map((c) => (
             <li
               key={c.id}
-              className="flex items-center justify-between gap-4 rounded-lg border border-black/[.08] p-4 dark:border-white/[.145]"
+              className="flex items-center justify-between gap-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-card)] p-4"
             >
               <div>
-                <p className="font-medium text-black dark:text-zinc-50">{c.name}</p>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                <p className="font-medium text-[var(--color-ink)]">{c.name}</p>
+                <p className="text-sm text-[var(--color-text-secondary)]">
                   {c.phone ?? "No phone"}
                   {c.email ? ` · ${c.email}` : ""}
                 </p>
@@ -143,7 +141,7 @@ export default function ReviewContactsPage() {
                 onClick={() => void handleRequestReview(c.id)}
                 disabled={sendingId === c.id || !c.phone}
                 title={!c.phone ? "Contact has no phone number" : undefined}
-                className="whitespace-nowrap rounded-full border border-black/[.08] px-3 py-1 text-sm text-black disabled:opacity-50 dark:border-white/[.145] dark:text-zinc-50"
+                className="whitespace-nowrap rounded-full border border-[var(--color-border)] px-3 py-1 text-sm text-[var(--color-ink)] disabled:opacity-50"
               >
                 {sendingId === c.id
                   ? "Sending..."

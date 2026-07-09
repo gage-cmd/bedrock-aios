@@ -1,6 +1,4 @@
 import { Injectable, Optional, OnModuleDestroy } from '@nestjs/common';
-import { readFile } from 'fs/promises';
-import { join } from 'path';
 import { Pool } from 'pg';
 import { MessagingService } from '../../shared/messaging/messaging.service';
 import type { TenantPhoneNumberRow } from '../../shared/messaging/messaging.service';
@@ -72,18 +70,6 @@ function inviteClientFromEnv(): InviteClient {
     : new StubInviteClient();
 }
 
-// Where module packages live on disk. Two candidates, first readable file
-// wins: (1) relative to this file -- src/core/onboarding/../../modules under
-// ts-jest, and the compiled tree's modules dir in a build (nest-cli assets
-// copy each module's *.json next to the compiled output); (2) the source tree
-// relative to the working directory, since every entrypoint (npm start, jest,
-// start:prod) runs from backend/. Keeps the module list resilient to the
-// compiled layout shifting (dist/ vs dist/src/).
-const MODULES_DIR_CANDIDATES = [
-  join(__dirname, '..', '..', 'modules'),
-  join(process.cwd(), 'src', 'modules'),
-];
-
 @Injectable()
 export class OnboardingService implements OnModuleDestroy {
   private readonly pool = new Pool({
@@ -148,11 +134,8 @@ export class OnboardingService implements OnModuleDestroy {
 
     return Promise.all(
       keys.map(async (moduleKey) => {
-        const meta = await this.readModuleJson<{
-          name?: string;
-          description?: string;
-        }>(moduleKey, 'config.json');
-        const settingsSchema = await this.readModuleJson<
+        const meta = await this.registry.getModuleMetadata(moduleKey);
+        const settingsSchema = await this.registry.readModuleFile<
           Record<string, unknown>
         >(moduleKey, 'settings.schema.json');
 
@@ -298,23 +281,6 @@ export class OnboardingService implements OnModuleDestroy {
     );
 
     return { status: 'active' };
-  }
-
-  private async readModuleJson<T>(
-    moduleKey: string,
-    file: string,
-  ): Promise<T | null> {
-    for (const dir of MODULES_DIR_CANDIDATES) {
-      try {
-        const raw = await readFile(join(dir, moduleKey, file), 'utf8');
-        return JSON.parse(raw) as T;
-      } catch {
-        // Try the next candidate location.
-      }
-    }
-    // A module without this file is listable, just without metadata or a
-    // settings form -- not an error.
-    return null;
   }
 
   onModuleDestroy(): Promise<void> {

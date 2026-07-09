@@ -11,7 +11,7 @@ interface MissedCallRow {
   textback_body: string | null;
 }
 
-export default function MissedCallActivityPage() {
+export function ActivityTab() {
   const [rows, setRows] = useState<MissedCallRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,37 +37,35 @@ export default function MissedCallActivityPage() {
   }, []);
 
   return (
-    <div className="flex-1 p-8">
-      <h1 className="text-2xl font-semibold text-black dark:text-zinc-50">Recent Activity</h1>
-
-      {error && <p className="mt-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
+    <div>
+      {error && <p className="text-sm text-[var(--color-status-attention)]">{error}</p>}
 
       {rows === null && !error && (
-        <p className="mt-4 text-zinc-500 dark:text-zinc-400">Loading...</p>
+        <p className="text-[var(--color-text-secondary)]">Loading...</p>
       )}
 
       {rows?.length === 0 && (
-        <p className="mt-4 text-zinc-500 dark:text-zinc-400">No missed calls yet.</p>
+        <p className="text-[var(--color-text-secondary)]">No missed calls yet.</p>
       )}
 
       {rows && rows.length > 0 && (
-        <ul className="mt-4 flex flex-col gap-2">
+        <ul className="flex flex-col gap-2">
           {rows.map((r) => (
             <li
               key={r.id}
-              className="flex items-center justify-between gap-4 rounded-lg border border-black/[.08] p-4 dark:border-white/[.145]"
+              className="flex items-center justify-between gap-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-card)] p-4"
             >
               <div>
-                <p className="font-medium text-black dark:text-zinc-50">{r.contact_phone}</p>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                <p className="font-medium text-[var(--color-ink)]">{r.contact_phone}</p>
+                <p className="text-sm text-[var(--color-text-secondary)]">
                   Missed {new Date(r.missed_at).toLocaleString()}
                 </p>
               </div>
               <span
                 className={`whitespace-nowrap text-sm ${
                   r.textback_sent
-                    ? "text-green-600 dark:text-green-400"
-                    : "text-amber-600 dark:text-amber-400"
+                    ? "text-[var(--color-status-good)]"
+                    : "text-[var(--color-status-attention)]"
                 }`}
               >
                 {r.textback_sent ? "Text-back sent" : "No text-back"}

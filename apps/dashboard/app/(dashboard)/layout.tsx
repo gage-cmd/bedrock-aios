@@ -6,18 +6,16 @@ import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { SystemStatusStrip } from "@/components/SystemStatusStrip";
 
+// Fixed set, deliberately never one link per module -- module sub-pages
+// (settings, activity, contacts) live inside each module's own detail page
+// at /installed-systems/[moduleKey], reached by clicking its card there.
 const NAV_LINKS = [
   { href: "/", label: "Business Snapshot" },
   { href: "/command-center", label: "Command Center" },
-  { href: "/business-reports", label: "Business Reports" },
   { href: "/installed-systems", label: "Installed Systems" },
+  { href: "/business-reports", label: "Business Reports" },
   { href: "/notifications", label: "Notifications" },
   { href: "/client-settings", label: "Client Settings" },
-  { href: "/review-generation", label: "Review Contacts" },
-  { href: "/review-generation/activity", label: "Review Activity" },
-  { href: "/review-generation/settings", label: "Review Settings" },
-  { href: "/missed-call-textback/activity", label: "Missed-Call Activity" },
-  { href: "/missed-call-textback/settings", label: "Missed-Call Settings" },
 ];
 
 // Guards every route in this group: redirects to /login if there's no
@@ -71,7 +69,10 @@ export default function DashboardLayout({
           </p>
         </div>
         {NAV_LINKS.map((link) => {
-          const active = pathname === link.href;
+          const active =
+            link.href === "/"
+              ? pathname === "/"
+              : pathname === link.href || pathname.startsWith(`${link.href}/`);
           return (
             <Link
               key={link.href}

@@ -1,25 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase/client";
-
-type ModuleStatus =
-  | { status: "connected" }
-  | { status: "needs attention"; reason: string };
-
-interface EnabledModule {
-  moduleKey: string;
-  config: Record<string, unknown>;
-}
-
-// Display labels for the modules this dashboard ships a status indicator
-// for. A module must already appear in lib/module-loader.tsx's
-// WIDGET_REGISTRY to have a dashboard presence at all -- this strip surfaces
-// the same set, not a separate list.
-const MODULE_LABELS: Record<string, string> = {
-  "review-generation": "Review Generation",
-  "missed-call-textback": "Missed-Call Text-Back",
-};
+import {
+  getModuleStatus,
+  listEnabledModules,
+  type ModuleStatus,
+} from "@/lib/module-registry-client";
 
 interface ModuleStatusEntry {
   moduleKey: string;
@@ -34,38 +20,18 @@ export function SystemStatusStrip() {
     let active = true;
 
     async function load() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session) return;
-
-      const authHeader = { Authorization: `Bearer ${session.access_token}` };
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-
-      const manifestRes = await fetch(`${backendUrl}/module-manifest`, {
-        headers: authHeader,
-      });
-
-      if (!active || !manifestRes.ok) return;
-
-      const modules = (await manifestRes.json()) as EnabledModule[];
-      const known = modules.filter((m) => m.moduleKey in MODULE_LABELS);
-
-      if (known.length === 0) {
-        setEntries([]);
+      const modules = await listEnabledModules();
+      if (!active || modules.length === 0) {
+        if (active) setEntries([]);
         return;
       }
 
       const results = await Promise.all(
-        known.map(async (m) => {
-          const res = await fetch(
-            `${backendUrl}/modules/${m.moduleKey}/status`,
-            { headers: authHeader },
-          );
-          const status: ModuleStatus | null = res.ok ? await res.json() : null;
-          return { moduleKey: m.moduleKey, label: MODULE_LABELS[m.moduleKey], status };
-        }),
+        modules.map(async (m) => ({
+          moduleKey: m.moduleKey,
+          label: m.name,
+          status: await getModuleStatus(m.moduleKey),
+        })),
       );
 
       if (active) setEntries(results);

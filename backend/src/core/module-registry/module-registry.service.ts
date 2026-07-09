@@ -39,6 +39,14 @@ export class ModuleRegistryService implements OnModuleDestroy {
     return this.instances.get(moduleKey);
   }
 
+  // Every module key that registered itself at boot -- i.e. what this
+  // deployment actually ships, independent of any tenant's manifest. The
+  // onboarding console builds its "enable modules" list from this, so a new
+  // module appears there by virtue of registering, with no console change.
+  getRegisteredModuleKeys(): string[] {
+    return [...this.instances.keys()];
+  }
+
   async getEnabledModules(tenantId: string): Promise<EnabledModule[]> {
     const result = await this.pool.query<ModuleManifestRow>(
       'select module_key, config from module_manifest where tenant_id = $1 and enabled = true',

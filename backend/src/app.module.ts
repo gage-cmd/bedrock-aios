@@ -9,6 +9,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './core/auth/auth.module';
 import { ExecutiveOversightModule } from './core/executive-oversight/executive-oversight.module';
 import { ModuleRegistryModule } from './core/module-registry/module-registry.module';
+import { OnboardingModule } from './core/onboarding/onboarding.module';
 import { OrchestratorModule } from './core/orchestrator/orchestrator.module';
 import { TenantResolverMiddleware } from './core/tenant-resolver/tenant-resolver.middleware';
 import { MissedCallTextbackModule } from './modules/missed-call-textback/missed-call-textback.module';
@@ -17,6 +18,7 @@ import { ReviewGenerationModule } from './modules/review-generation/review-gener
 @Module({
   imports: [
     AuthModule,
+    OnboardingModule,
     ModuleRegistryModule,
     OrchestratorModule,
     ExecutiveOversightModule,
@@ -50,6 +52,15 @@ export class AppModule implements NestModule {
         { path: 'public/voice/status', method: RequestMethod.POST },
         // Root health check -- unauthenticated by design (hosting hits it).
         { path: '/', method: RequestMethod.GET },
+        // The Onboarding Console (Phase 5). NOT unauthenticated: these routes
+        // are guarded by AdminGuard on OnboardingController instead. They are
+        // excluded here because platform-admin tokens carry no tenant_id
+        // claim, so TenantResolverMiddleware would reject every admin request
+        // before the guard ever ran. Tenant tokens die inside AdminGuard
+        // (rejected outright for carrying tenant_id), so excluding the routes
+        // from tenant middleware opens nothing to tenant users.
+        { path: 'admin/onboarding', method: RequestMethod.ALL },
+        { path: 'admin/onboarding/{*splat}', method: RequestMethod.ALL },
       )
       .forRoutes('*');
   }

@@ -4,6 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 
+const inputClasses =
+  "rounded-md border border-[var(--color-border)] bg-[var(--color-surface-card)] px-3 py-2 text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-primary)]";
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -32,49 +35,98 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center bg-zinc-50 dark:bg-black">
-      <form
-        onSubmit={handleSubmit}
-        className="flex w-full max-w-sm flex-col gap-4 rounded-lg border border-black/[.08] bg-white p-8 dark:border-white/[.145] dark:bg-zinc-900"
-      >
-        <h1 className="text-xl font-semibold text-black dark:text-zinc-50">
-          Sign in
-        </h1>
+    <div className="flex flex-1">
+      <aside className="hidden w-2/5 max-w-xl flex-col justify-between bg-[var(--color-ink)] p-12 lg:flex">
+        <div>
+          <p className="font-[family-name:var(--font-display)] text-2xl font-medium text-white">
+            Bedrock AI
+          </p>
+          <div className="mt-3 h-px w-10 bg-[var(--color-accent-gold)]" />
+        </div>
+        <div>
+          <p className="font-[family-name:var(--font-display)] text-3xl font-medium leading-snug text-white">
+            Your business,{" "}
+            <span className="italic text-[var(--color-accent-gold)]">
+              running in the background.
+            </span>
+          </p>
+          <p className="mt-4 max-w-sm text-sm leading-relaxed text-[var(--color-ink-muted)]">
+            Every missed call answered, every lead followed up, every review
+            requested. Sign in to see what your systems recovered today.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="status-dot-good inline-block h-2 w-2 rounded-full bg-[var(--color-status-good)]" />
+          <p className="font-metric text-xs text-[var(--color-ink-muted)]">
+            All systems operational
+          </p>
+        </div>
+      </aside>
 
-        <label className="flex flex-col gap-1 text-sm text-zinc-700 dark:text-zinc-300">
-          Email
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="rounded-md border border-black/[.08] px-3 py-2 text-black dark:border-white/[.145] dark:bg-black dark:text-zinc-50"
-          />
-        </label>
+      <div className="flex flex-1 flex-col items-center justify-center bg-[var(--color-surface)] p-6">
+        <div className="mb-8 text-center lg:hidden">
+          <p className="font-[family-name:var(--font-display)] text-2xl font-medium text-[var(--color-ink)]">
+            Bedrock AI
+          </p>
+          <div className="mx-auto mt-3 h-px w-10 bg-[var(--color-accent-gold)]" />
+        </div>
 
-        <label className="flex flex-col gap-1 text-sm text-zinc-700 dark:text-zinc-300">
-          Password
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="rounded-md border border-black/[.08] px-3 py-2 text-black dark:border-white/[.145] dark:bg-black dark:text-zinc-50"
-          />
-        </label>
-
-        {error && (
-          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-2 rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-50 dark:hover:bg-[#ccc]"
+        <form
+          onSubmit={handleSubmit}
+          className="flex w-full max-w-sm flex-col gap-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-card)] p-8"
         >
-          {loading ? "Signing in..." : "Sign in"}
-        </button>
-      </form>
+          <div>
+            <h1 className="font-[family-name:var(--font-display)] text-2xl font-medium text-[var(--color-ink)]">
+              Welcome back
+            </h1>
+            <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+              Sign in to your command center.
+            </p>
+          </div>
+
+          <label className="flex flex-col gap-1 text-sm text-[var(--color-text-secondary)]">
+            Email
+            <input
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={inputClasses}
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm text-[var(--color-text-secondary)]">
+            Password
+            <input
+              type="password"
+              required
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={inputClasses}
+            />
+          </label>
+
+          {error && (
+            <p className="text-sm text-[var(--color-status-attention)]">
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="mt-2 rounded-full bg-[var(--color-accent-primary)] px-5 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+          >
+            {loading ? "Signing in..." : "Sign in"}
+          </button>
+        </form>
+
+        <p className="mt-6 text-xs text-[var(--color-text-secondary)]">
+          Access is provisioned by your Bedrock AI team.
+        </p>
+      </div>
     </div>
   );
 }

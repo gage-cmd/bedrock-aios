@@ -45,12 +45,12 @@ export default function NotificationsPage() {
 
   return (
     <div className="flex-1 p-8">
-      <h1 className="font-[family-name:var(--font-display)] text-3xl font-medium text-[var(--color-ink)] dark:text-zinc-50">
+      <h1 className="font-[family-name:var(--font-display)] text-3xl font-medium text-[var(--color-ink)]">
         Notifications
       </h1>
 
       {notifications === null && (
-        <p className="mt-4 text-[var(--color-text-secondary)] dark:text-zinc-400">
+        <p className="mt-4 text-[var(--color-text-secondary)]">
           Loading...
         </p>
       )}
@@ -68,16 +68,16 @@ export default function NotificationsPage() {
               key={n.id}
               className={`flex items-start justify-between gap-4 rounded-lg border p-4 ${
                 n.read
-                  ? "border-[var(--color-border)] dark:border-white/[.145]"
-                  : "border-[var(--color-accent-primary)] bg-[var(--color-surface-card)] dark:border-white/[.3] dark:bg-zinc-900"
+                  ? "border-[var(--color-border)]"
+                  : "border-[var(--color-accent-primary)] bg-[var(--color-surface-card)]"
               }`}
             >
               <div>
-                <p className="font-medium text-[var(--color-ink)] dark:text-zinc-50">
+                <p className="font-medium text-[var(--color-ink)]">
                   {n.title}
                 </p>
                 {n.body && (
-                  <p className="text-sm text-[var(--color-text-secondary)] dark:text-zinc-400">
+                  <p className="text-sm text-[var(--color-text-secondary)]">
                     {n.body}
                   </p>
                 )}
@@ -85,7 +85,7 @@ export default function NotificationsPage() {
               {!n.read && (
                 <button
                   onClick={() => void markAsRead(n.id)}
-                  className="whitespace-nowrap rounded-full border border-[var(--color-border)] px-3 py-1 text-sm text-[var(--color-ink)] dark:border-white/[.145] dark:text-zinc-50"
+                  className="whitespace-nowrap rounded-full border border-[var(--color-border)] px-3 py-1 text-sm text-[var(--color-ink)]"
                 >
                   Mark as read
                 </button>

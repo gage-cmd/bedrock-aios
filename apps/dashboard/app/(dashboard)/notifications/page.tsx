@@ -45,16 +45,18 @@ export default function NotificationsPage() {
 
   return (
     <div className="flex-1 p-8">
-      <h1 className="text-2xl font-semibold text-black dark:text-zinc-50">
+      <h1 className="text-2xl font-semibold text-[var(--color-ink)] dark:text-zinc-50">
         Notifications
       </h1>
 
       {notifications === null && (
-        <p className="mt-4 text-zinc-500 dark:text-zinc-400">Loading...</p>
+        <p className="mt-4 text-[var(--color-text-secondary)] dark:text-zinc-400">
+          Loading...
+        </p>
       )}
 
       {notifications?.length === 0 && (
-        <p className="mt-4 text-zinc-500 dark:text-zinc-400">
+        <p className="mt-4 text-[var(--color-text-secondary)] dark:text-zinc-400">
           No notifications.
         </p>
       )}
@@ -66,16 +68,16 @@ export default function NotificationsPage() {
               key={n.id}
               className={`flex items-start justify-between gap-4 rounded-lg border p-4 ${
                 n.read
-                  ? "border-black/[.08] dark:border-white/[.145]"
-                  : "border-black/[.2] bg-zinc-50 dark:border-white/[.3] dark:bg-zinc-900"
+                  ? "border-[var(--color-border)] dark:border-white/[.145]"
+                  : "border-[var(--color-accent-primary)] bg-[var(--color-surface-card)] dark:border-white/[.3] dark:bg-zinc-900"
               }`}
             >
               <div>
-                <p className="font-medium text-black dark:text-zinc-50">
+                <p className="font-medium text-[var(--color-ink)] dark:text-zinc-50">
                   {n.title}
                 </p>
                 {n.body && (
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  <p className="text-sm text-[var(--color-text-secondary)] dark:text-zinc-400">
                     {n.body}
                   </p>
                 )}
@@ -83,7 +85,7 @@ export default function NotificationsPage() {
               {!n.read && (
                 <button
                   onClick={() => void markAsRead(n.id)}
-                  className="whitespace-nowrap rounded-full border border-black/[.08] px-3 py-1 text-sm text-black dark:border-white/[.145] dark:text-zinc-50"
+                  className="whitespace-nowrap rounded-full border border-[var(--color-border)] px-3 py-1 text-sm text-[var(--color-ink)] dark:border-white/[.145] dark:text-zinc-50"
                 >
                   Mark as read
                 </button>

@@ -26,7 +26,7 @@ export default function ClientSettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex-1 p-8 text-zinc-500 dark:text-zinc-400">
+      <div className="flex-1 p-8 text-[var(--color-text-secondary)] dark:text-zinc-400">
         Loading...
       </div>
     );
@@ -36,12 +36,12 @@ export default function ClientSettingsPage() {
 
   return (
     <div className="flex-1 p-8">
-      <h1 className="text-2xl font-semibold text-black dark:text-zinc-50">
+      <h1 className="text-2xl font-semibold text-[var(--color-ink)] dark:text-zinc-50">
         Client Settings
       </h1>
 
       <form onSubmit={handleSave} className="mt-6 flex max-w-sm flex-col gap-4">
-        <label className="flex flex-col gap-1 text-sm text-zinc-700 dark:text-zinc-300">
+        <label className="flex flex-col gap-1 text-sm text-[var(--color-text-secondary)] dark:text-zinc-300">
           Business name
           {/* key forces a remount (and fresh defaultValue) once the tenant
               finishes loading -- avoids syncing external state into local
@@ -51,16 +51,16 @@ export default function ClientSettingsPage() {
             ref={nameRef}
             defaultValue={tenant?.tenantName ?? ""}
             disabled={!isOwner}
-            className="rounded-md border border-black/[.08] px-3 py-2 text-black disabled:opacity-50 dark:border-white/[.145] dark:bg-black dark:text-zinc-50"
+            className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-card)] px-3 py-2 text-[var(--color-ink)] disabled:opacity-50 dark:border-white/[.145] dark:bg-black dark:text-zinc-50"
           />
         </label>
 
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="text-sm text-[var(--color-text-secondary)] dark:text-zinc-400">
           Status: {tenant?.tenantStatus}
         </p>
 
         {!isOwner && (
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="text-sm text-[var(--color-text-secondary)] dark:text-zinc-400">
             Only account owners can edit these settings.
           </p>
         )}
@@ -76,7 +76,7 @@ export default function ClientSettingsPage() {
         )}
 
         {saved && (
-          <p className="text-sm text-green-600 dark:text-green-400">Saved.</p>
+          <p className="text-sm text-[var(--color-status-good)] dark:text-green-400">Saved.</p>
         )}
       </form>
     </div>

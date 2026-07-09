@@ -20,9 +20,9 @@ export function TestModuleWidget({
   }
 
   return (
-    <div className="rounded-lg border border-black/[.08] p-4">
-      <p className="font-medium text-black">Test module</p>
-      <pre className="mt-2 text-xs text-zinc-500">
+    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-card)] p-4">
+      <p className="text-sm font-medium text-[var(--color-ink)]">Test module</p>
+      <pre className="mt-2 text-xs text-[var(--color-text-secondary)]">
         {JSON.stringify(config, null, 2)}
       </pre>
     </div>

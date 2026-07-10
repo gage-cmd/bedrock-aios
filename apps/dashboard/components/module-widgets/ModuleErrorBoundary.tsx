@@ -28,7 +28,7 @@ export class ModuleErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+        <div className="rounded-lg border border-[var(--color-status-attention)]/40 p-4 text-sm text-[var(--color-status-attention)]">
           &ldquo;{this.props.moduleKey}&rdquo; failed to load.
         </div>
       );

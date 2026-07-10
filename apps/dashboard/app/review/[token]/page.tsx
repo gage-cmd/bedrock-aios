@@ -99,18 +99,18 @@ export default function ReviewFunnelPage() {
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center bg-zinc-50 p-6 dark:bg-black">
-      <div className="w-full max-w-md rounded-2xl border border-black/[.08] bg-white p-8 text-center dark:border-white/[.145] dark:bg-zinc-900">
+    <div className="flex flex-1 items-center justify-center bg-[var(--color-surface)] p-6">
+      <div className="w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-card)] p-8 text-center">
         {phase === "loading" && (
-          <p className="text-zinc-500 dark:text-zinc-400">Loading...</p>
+          <p className="text-[var(--color-text-secondary)]">Loading...</p>
         )}
 
         {phase === "invalid" && (
           <>
-            <h1 className="text-xl font-semibold text-black dark:text-zinc-50">
+            <h1 className="font-[family-name:var(--font-display)] text-2xl font-medium text-[var(--color-ink)]">
               This link is no longer valid
             </h1>
-            <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
               It may have already been used or expired. If you think this is a
               mistake, please reach out to the business directly.
             </p>
@@ -119,10 +119,10 @@ export default function ReviewFunnelPage() {
 
         {phase === "rating" && (
           <>
-            <h1 className="text-xl font-semibold text-black dark:text-zinc-50">
+            <h1 className="font-[family-name:var(--font-display)] text-2xl font-medium text-[var(--color-ink)]">
               How was your experience?
             </h1>
-            <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
               Tap a star to let us know.
             </p>
             <div className="mt-6 flex justify-center gap-2">
@@ -133,7 +133,7 @@ export default function ReviewFunnelPage() {
                   aria-label={`${value} star${value === 1 ? "" : "s"}`}
                   disabled={submitting}
                   onClick={() => handleStar(value)}
-                  className="text-4xl leading-none text-amber-400 transition-transform hover:scale-110 disabled:opacity-50"
+                  className="text-4xl leading-none text-[var(--color-accent-gold)] transition-transform hover:scale-110 disabled:opacity-50"
                 >
                   {value <= rating ? "★" : "☆"}
                 </button>
@@ -144,10 +144,10 @@ export default function ReviewFunnelPage() {
 
         {phase === "feedback" && (
           <>
-            <h1 className="text-xl font-semibold text-black dark:text-zinc-50">
+            <h1 className="font-[family-name:var(--font-display)] text-2xl font-medium text-[var(--color-ink)]">
               We&rsquo;re sorry we fell short
             </h1>
-            <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
               Tell us what happened so we can make it right. This goes straight
               to the owner and stays private.
             </p>
@@ -156,13 +156,13 @@ export default function ReviewFunnelPage() {
               onChange={(e) => setFeedback(e.target.value)}
               rows={4}
               placeholder="What could we have done better?"
-              className="mt-4 w-full rounded-md border border-black/[.08] px-3 py-2 text-left text-black dark:border-white/[.145] dark:bg-black dark:text-zinc-50"
+              className="mt-4 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-card)] px-3 py-2 text-left text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-primary)]"
             />
             <button
               type="button"
               disabled={submitting}
               onClick={() => void submit(rating, feedback)}
-              className="mt-4 w-full rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-50 dark:hover:bg-[#ccc]"
+              className="mt-4 w-full rounded-full bg-[var(--color-accent-primary)] px-5 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               {submitting ? "Sending..." : "Send feedback"}
             </button>
@@ -171,10 +171,10 @@ export default function ReviewFunnelPage() {
 
         {phase === "done" && (
           <>
-            <h1 className="text-xl font-semibold text-black dark:text-zinc-50">
+            <h1 className="font-[family-name:var(--font-display)] text-2xl font-medium text-[var(--color-ink)]">
               Thank you
             </h1>
-            <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
               We appreciate you taking the time to share your feedback.
             </p>
           </>

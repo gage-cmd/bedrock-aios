@@ -61,10 +61,10 @@ export default function BusinessReportsPage() {
       )}
 
       {reports?.length === 0 && (
-        <p className="mt-4 text-[var(--color-text-secondary)]">
+        <div className="mt-6 rounded-lg border border-dashed border-[var(--color-border)] p-12 text-center text-[var(--color-text-secondary)]">
           No reports yet. Your first weekly report will appear here once it is
           ready.
-        </p>
+        </div>
       )}
 
       {reports && reports.length > 0 && (

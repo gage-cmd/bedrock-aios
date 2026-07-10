@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { OverviewTab } from "@/components/module-detail/OverviewTab";
 import { ContactsTab as ReviewContactsTab } from "@/components/module-detail/review-generation/ContactsTab";
 import { ActivityTab as ReviewActivityTab } from "@/components/module-detail/review-generation/ActivityTab";
-import { SettingsTab as ReviewSettingsTab } from "@/components/module-detail/review-generation/SettingsTab";
 import { ActivityTab as MissedCallActivityTab } from "@/components/module-detail/missed-call-textback/ActivityTab";
 import { ModuleSettingsPanel } from "@/components/module-detail/ModuleSettingsPanel";
 
@@ -22,7 +21,7 @@ export const MODULE_TABS: Record<string, ModuleTab[]> = {
     { key: "overview", label: "Overview", render: () => <OverviewTab moduleKey="review-generation" /> },
     { key: "contacts", label: "Contacts", render: () => <ReviewContactsTab /> },
     { key: "activity", label: "Activity", render: () => <ReviewActivityTab /> },
-    { key: "settings", label: "Settings", render: () => <ReviewSettingsTab /> },
+    { key: "settings", label: "Settings", render: () => <ModuleSettingsPanel moduleKey="review-generation" /> },
   ],
   "missed-call-textback": [
     { key: "overview", label: "Overview", render: () => <OverviewTab moduleKey="missed-call-textback" /> },

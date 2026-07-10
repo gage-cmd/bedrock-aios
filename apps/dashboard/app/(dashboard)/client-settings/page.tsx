@@ -9,6 +9,7 @@ export default function ClientSettingsPage() {
   const nameRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -16,11 +17,16 @@ export default function ClientSettingsPage() {
 
     setSaving(true);
     setSaved(false);
-    await supabase
+    setError(null);
+    const { error } = await supabase
       .from("tenants")
       .update({ name: nameRef.current.value })
       .eq("id", tenant.tenantId);
     setSaving(false);
+    if (error) {
+      setError("We couldn't save your changes. Please try again.");
+      return;
+    }
     setSaved(true);
   }
 
@@ -73,6 +79,10 @@ export default function ClientSettingsPage() {
           >
             {saving ? "Saving..." : "Save"}
           </button>
+        )}
+
+        {error && (
+          <p className="text-sm text-[var(--color-status-attention)]">{error}</p>
         )}
 
         {saved && (

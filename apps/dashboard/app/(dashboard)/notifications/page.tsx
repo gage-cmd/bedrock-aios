@@ -16,6 +16,7 @@ export default function NotificationsPage() {
     null,
   );
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -42,7 +43,15 @@ export default function NotificationsPage() {
   }, []);
 
   async function markAsRead(id: string) {
-    await supabase.from("notifications").update({ read: true }).eq("id", id);
+    setActionError(null);
+    const { error } = await supabase
+      .from("notifications")
+      .update({ read: true })
+      .eq("id", id);
+    if (error) {
+      setActionError("We couldn't update that notification. Please try again.");
+      return;
+    }
     setNotifications(
       (prev) =>
         prev?.map((n) => (n.id === id ? { ...n, read: true } : n)) ?? null,
@@ -58,6 +67,12 @@ export default function NotificationsPage() {
       {error && (
         <p className="mt-4 text-sm text-[var(--color-status-attention)]">
           {error}
+        </p>
+      )}
+
+      {actionError && (
+        <p className="mt-4 text-sm text-[var(--color-status-attention)]">
+          {actionError}
         </p>
       )}
 

@@ -1,0 +1,25 @@
+-- __MODULE_TITLE__: __MODULE_SCHEMA__.__MODULE_TABLE__
+-- __MODULE_SCHEMA__ is a dedicated schema, kept separate from `public` and
+-- every other module's schema so this module's tables never collide with
+-- core or sibling-module tables. Canonical copy of this DDL also lives at
+-- backend/src/modules/__MODULE_KEY__/db/schema.sql -- keep in sync.
+create schema if not exists __MODULE_SCHEMA__;
+
+create table __MODULE_SCHEMA__.__MODULE_TABLE__ (
+  id uuid primary key default gen_random_uuid(),
+  tenant_id uuid not null references public.tenants(id),
+  created_at timestamptz not null default now()
+);
+
+alter table __MODULE_SCHEMA__.__MODULE_TABLE__ enable row level security;
+
+create policy "tenant_isolation" on __MODULE_SCHEMA__.__MODULE_TABLE__
+  for all
+  using (tenant_id = (auth.jwt() ->> 'tenant_id')::uuid);
+
+-- New schema, so it needs the same explicit grants review_generation needed
+-- (see 0011) -- Postgres denies access at the schema level before RLS is
+-- ever evaluated. anon is left out: nothing here should be anon-accessible.
+grant usage on schema __MODULE_SCHEMA__ to authenticated, service_role;
+grant select, insert, update, delete on all tables in schema __MODULE_SCHEMA__ to authenticated, service_role;
+alter default privileges in schema __MODULE_SCHEMA__ grant select, insert, update, delete on tables to authenticated, service_role;

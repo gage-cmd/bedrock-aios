@@ -1,0 +1,28 @@
+import { Module, OnModuleInit } from '@nestjs/common';
+import { ModuleRegistryModule } from '../../core/module-registry/module-registry.module';
+import { ModuleRegistryService } from '../../core/module-registry/module-registry.service';
+import { __MODULE_NAME_PASCAL__Controller } from './api/__MODULE_KEY__.controller';
+import { __MODULE_NAME_PASCAL__Service } from './__MODULE_KEY__.service';
+
+// Self-registers this module's service into ModuleRegistryService at boot
+// (onModuleInit) -- a module -> core dependency, which is the allowed
+// direction (core must never import a module). Registering is what makes the
+// module appear in the orchestrator's capability list, the onboarding
+// "enable" list, and the dashboard, all by convention. The only manual wiring
+// is importing this class into AppModule.imports.
+@Module({
+  imports: [ModuleRegistryModule],
+  controllers: [__MODULE_NAME_PASCAL__Controller],
+  providers: [__MODULE_NAME_PASCAL__Service],
+  exports: [__MODULE_NAME_PASCAL__Service],
+})
+export class __MODULE_NAME_PASCAL__Module implements OnModuleInit {
+  constructor(
+    private readonly registry: ModuleRegistryService,
+    private readonly service: __MODULE_NAME_PASCAL__Service,
+  ) {}
+
+  onModuleInit(): void {
+    this.registry.registerModule('__MODULE_KEY__', this.service);
+  }
+}

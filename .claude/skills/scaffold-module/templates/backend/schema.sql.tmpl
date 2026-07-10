@@ -1,0 +1,25 @@
+-- This module's tables live in the dedicated __MODULE_SCHEMA__ Postgres schema.
+-- The applied migration is
+-- backend/shared/db/migrations/__MIGRATION_FILENAME__
+-- (identical content) -- migrations live there, not here, since they are
+-- applied manually from a single shared directory across the whole project.
+-- This file is the module-local canonical copy; keep the two in sync.
+--
+-- Tenant-isolation RLS test: ../tenant-isolation.spec.ts
+create schema if not exists __MODULE_SCHEMA__;
+
+create table __MODULE_SCHEMA__.__MODULE_TABLE__ (
+  id uuid primary key default gen_random_uuid(),
+  tenant_id uuid not null references public.tenants(id),
+  created_at timestamptz not null default now()
+);
+
+alter table __MODULE_SCHEMA__.__MODULE_TABLE__ enable row level security;
+
+create policy "tenant_isolation" on __MODULE_SCHEMA__.__MODULE_TABLE__
+  for all
+  using (tenant_id = (auth.jwt() ->> 'tenant_id')::uuid);
+
+grant usage on schema __MODULE_SCHEMA__ to authenticated, service_role;
+grant select, insert, update, delete on all tables in schema __MODULE_SCHEMA__ to authenticated, service_role;
+alter default privileges in schema __MODULE_SCHEMA__ grant select, insert, update, delete on tables to authenticated, service_role;

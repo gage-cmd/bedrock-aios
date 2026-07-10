@@ -1,0 +1,87 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase/client";
+
+// One row returned by the get-recent-records intent. Widen this to the real
+// columns once the module's schema is fleshed out.
+interface ActivityRow {
+  id: string;
+  created_at: string;
+}
+
+// The module's Activity tab on its detail page. Posts the read-only
+// get-recent-records intent to the module's own /actions route -- the same
+// tenant-scoped surface the dashboard uses everywhere. Wired into MODULE_TABS
+// in lib/module-detail-tabs.tsx (Overview and Settings come for free from the
+// generic tabs, no per-module code).
+export function ActivityTab() {
+  const [rows, setRows] = useState<ActivityRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/modules/__MODULE_KEY__/actions`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ intent: "get-recent-records" }),
+        },
+      );
+
+      if (!active) return;
+      if (!res.ok) {
+        setError("Could not load activity.");
+        return;
+      }
+      setRows((await res.json()) as ActivityRow[]);
+    }
+
+    void load();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return (
+    <div>
+      {error && <p className="text-sm text-[var(--color-status-attention)]">{error}</p>}
+
+      {rows === null && !error && (
+        <p className="text-[var(--color-text-secondary)]">Loading...</p>
+      )}
+
+      {rows?.length === 0 && (
+        <div className="rounded-lg border border-dashed border-[var(--color-border)] p-12 text-center text-[var(--color-text-secondary)]">
+          No activity yet.
+        </div>
+      )}
+
+      {rows && rows.length > 0 && (
+        <ul className="flex flex-col gap-2">
+          {rows.map((r) => (
+            <li
+              key={r.id}
+              className="flex items-center justify-between gap-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-card)] p-4"
+            >
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                {new Date(r.created_at).toLocaleString()}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

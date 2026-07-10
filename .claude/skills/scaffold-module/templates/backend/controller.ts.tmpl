@@ -1,0 +1,56 @@
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+} from '@nestjs/common';
+import type { Request } from 'express';
+import { __MODULE_NAME_PASCAL__Service } from '../__MODULE_KEY__.service';
+
+// The dashboard's read/write surface for this module. Everything here is
+// tenant-scoped through req.tenantContext (set by TenantResolverMiddleware);
+// the tenantId is never taken from the request body. These routes are guarded
+// by the middleware by default -- do NOT add them to the .exclude() allow-list
+// in AppModule unless they are deliberately public.
+@Controller('modules/__MODULE_KEY__')
+export class __MODULE_NAME_PASCAL__Controller {
+  constructor(private readonly service: __MODULE_NAME_PASCAL__Service) {}
+
+  @Post('actions')
+  async handleAction(
+    @Req() req: Request,
+    @Body() body: { intent: string; payload?: Record<string, unknown> },
+  ): Promise<unknown> {
+    try {
+      return await this.service.handleRequest(
+        req.tenantContext!.tenantId,
+        body.intent,
+        body.payload,
+      );
+    } catch (err) {
+      // handleRequest throws plain Errors for expected failures (unknown
+      // intent, missing input). Surface them as 400s so the dashboard can show
+      // the reason instead of an opaque 500.
+      throw new BadRequestException(
+        err instanceof Error ? err.message : 'Request failed',
+      );
+    }
+  }
+
+  @Get('snapshot')
+  getSnapshot(@Req() req: Request) {
+    return this.service.getSnapshot(req.tenantContext!.tenantId);
+  }
+
+  @Get('status')
+  getStatus(@Req() req: Request) {
+    return this.service.getStatus(req.tenantContext!.tenantId);
+  }
+
+  @Get('capabilities')
+  getCapabilities() {
+    return this.service.getCapabilities();
+  }
+}

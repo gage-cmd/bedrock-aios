@@ -1,0 +1,109 @@
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Pool } from 'pg';
+import type {
+  ModuleContract,
+  ModuleStatus,
+  SnapshotResult,
+} from '../../core/module-registry/module-contract';
+
+// One row in __MODULE_SCHEMA__.__MODULE_TABLE__. This is the stub shape the
+// generated migration creates -- replace these columns (and the migration +
+// db/schema.sql alongside) with the module's real data model.
+export interface __MODULE_NAME_PASCAL__Row {
+  id: string;
+  tenant_id: string;
+  created_at: string;
+}
+
+// Implements the shared ModuleContract (handleRequest / getSnapshot /
+// getStatus / getCapabilities / getQueryableIntents) so the orchestrator and
+// dashboard can drive it without knowing anything module-specific. Registered
+// into ModuleRegistryService at boot by __MODULE_NAME_PASCAL__Module.
+@Injectable()
+export class __MODULE_NAME_PASCAL__Service implements ModuleContract, OnModuleDestroy {
+  private readonly pool = new Pool({
+    host: process.env.SUPABASE_DB_HOST,
+    port: Number(process.env.SUPABASE_DB_PORT),
+    user: process.env.SUPABASE_DB_USER,
+    password: process.env.SUPABASE_DB_PASSWORD,
+    database: process.env.SUPABASE_DB_NAME,
+    ssl: { rejectUnauthorized: false },
+  });
+
+  async handleRequest(
+    tenantId: string,
+    intent: string,
+    payload?: Record<string, unknown>,
+  ): Promise<unknown> {
+    switch (intent) {
+      case 'get-recent-records':
+        return this.getRecentRecords(tenantId, payload);
+      default:
+        throw new Error(`Unknown __MODULE_KEY__ intent: ${intent}`);
+    }
+  }
+
+  private async getRecentRecords(
+    tenantId: string,
+    payload?: Record<string, unknown>,
+  ): Promise<__MODULE_NAME_PASCAL__Row[]> {
+    const limit = typeof payload?.limit === 'number' ? payload.limit : 20;
+    const result = await this.pool.query<__MODULE_NAME_PASCAL__Row>(
+      'select * from __MODULE_SCHEMA__.__MODULE_TABLE__ where tenant_id = $1 order by created_at desc limit $2',
+      [tenantId, limit],
+    );
+    return result.rows;
+  }
+
+  async getSnapshot(tenantId: string): Promise<SnapshotResult> {
+    const result = await this.pool.query<{ count: number }>(
+      `select count(*)::int as count from __MODULE_SCHEMA__.__MODULE_TABLE__
+       where tenant_id = $1 and created_at >= now() - interval '7 days'`,
+      [tenantId],
+    );
+    return {
+      metric: '__MODULE_TITLE__ this week',
+      value: `${result.rows[0].count} this week`,
+    };
+  }
+
+  async getStatus(tenantId: string): Promise<ModuleStatus> {
+    // Template health check: reports "needs attention" until the tenant has
+    // filled in the required settings. Replace with this module's real signal
+    // (an external number provisioned, an API key present, a webhook verified).
+    const config = await this.getConfig(tenantId);
+    const configured =
+      typeof config.businessName === 'string' && config.businessName.length > 0;
+    return configured
+      ? { status: 'connected' }
+      : { status: 'needs attention', reason: 'setup not complete' };
+  }
+
+  getCapabilities(): string[] {
+    return ['Show me recent __MODULE_TITLE__ activity'];
+  }
+
+  // Read-only intents the orchestrator may route to. NEVER advertise a write
+  // intent here (sending a message, creating a record) -- the orchestrator
+  // answers questions, it must not take actions on the tenant's behalf.
+  getQueryableIntents(): { intent: string; description: string }[] {
+    return [
+      {
+        intent: 'get-recent-records',
+        description: 'List recent __MODULE_TITLE__ records for this business.',
+      },
+    ];
+  }
+
+  private async getConfig(tenantId: string): Promise<Record<string, unknown>> {
+    const result = await this.pool.query<{ config: Record<string, unknown> }>(
+      `select config from module_manifest where tenant_id = $1 and module_key = '__MODULE_KEY__'`,
+      [tenantId],
+    );
+    return result.rows[0]?.config ?? {};
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.pool.end();
+  }
+}

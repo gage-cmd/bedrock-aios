@@ -4,7 +4,7 @@ import { ContactsTab as ReviewContactsTab } from "@/components/module-detail/rev
 import { ActivityTab as ReviewActivityTab } from "@/components/module-detail/review-generation/ActivityTab";
 import { SettingsTab as ReviewSettingsTab } from "@/components/module-detail/review-generation/SettingsTab";
 import { ActivityTab as MissedCallActivityTab } from "@/components/module-detail/missed-call-textback/ActivityTab";
-import { SettingsTab as MissedCallSettingsTab } from "@/components/module-detail/missed-call-textback/SettingsTab";
+import { ModuleSettingsPanel } from "@/components/module-detail/ModuleSettingsPanel";
 
 export interface ModuleTab {
   key: string;
@@ -27,7 +27,7 @@ export const MODULE_TABS: Record<string, ModuleTab[]> = {
   "missed-call-textback": [
     { key: "overview", label: "Overview", render: () => <OverviewTab moduleKey="missed-call-textback" /> },
     { key: "activity", label: "Activity", render: () => <MissedCallActivityTab /> },
-    { key: "settings", label: "Settings", render: () => <MissedCallSettingsTab /> },
+    { key: "settings", label: "Settings", render: () => <ModuleSettingsPanel moduleKey="missed-call-textback" /> },
   ],
 };
 

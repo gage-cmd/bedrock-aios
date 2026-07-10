@@ -37,6 +37,33 @@ function htmlInputType(prop: SchemaProperty): string {
   return "text";
 }
 
+function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+// Mirrors the backend's saveModuleConfig validation so a bad value is caught
+// before the request, with a field-named message. Returns an error string, or
+// null when the value passes. Empty non-required values are skipped by the
+// caller (they are omitted from the payload).
+function fieldError(
+  prop: SchemaProperty,
+  label: string,
+  raw: string,
+): string | null {
+  if (prop.format === "uri" && !isHttpUrl(raw)) {
+    return `${label} must be a valid URL (include https://)`;
+  }
+  if (prop.pattern && !new RegExp(prop.pattern).test(raw)) {
+    return `${label} is not in the required format`;
+  }
+  return null;
+}
+
 function initialValue(
   prop: SchemaProperty,
   existing: unknown,
@@ -92,6 +119,12 @@ export function SchemaForm({
         const parsed = Number(raw);
         if (raw !== "" && Number.isFinite(parsed)) out[name] = parsed;
       } else if (typeof raw === "string" && raw.trim() !== "") {
+        const problem = fieldError(prop, prop.title ?? name, raw);
+        if (problem) {
+          setError(problem);
+          setSubmitting(false);
+          return;
+        }
         out[name] = raw;
       }
     }
@@ -148,6 +181,7 @@ export function SchemaForm({
               value={String(values[name])}
               onChange={(e) => setValue(name, e.target.value)}
               required={required.has(name)}
+              pattern={prop.pattern}
               className={inputClasses}
             />
           )}

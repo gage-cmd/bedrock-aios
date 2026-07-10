@@ -26,8 +26,21 @@ export interface SchemaProperty {
   description?: string;
   default?: string | number | boolean;
   format?: string;
+  pattern?: string;
   minimum?: number;
   maximum?: number;
+}
+
+// A tenant still mid-onboarding, for the resume list.
+export interface OnboardingTenantSummary {
+  tenantId: string;
+  name: string;
+  createdAt: string;
+}
+
+// A number offered for an area code, before purchase.
+export interface AvailableNumber {
+  phoneNumber: string;
 }
 
 export interface CreatedTenant {
@@ -58,6 +71,20 @@ export interface InvitedUser {
   email: string;
 }
 
+// Carries the backend's status and error code so callers can tell apart an
+// expected, actionable failure (a same-name tenant -> 409 'duplicate_name')
+// from a generic one, without string-matching messages.
+export class OnboardingRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code?: string,
+  ) {
+    super(message);
+    this.name = "OnboardingRequestError";
+  }
+}
+
 async function request<T>(
   path: string,
   init?: { method?: string; body?: unknown },
@@ -85,19 +112,38 @@ async function request<T>(
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as {
       message?: string;
+      code?: string;
     } | null;
-    throw new Error(body?.message ?? `Request failed (${res.status})`);
+    throw new OnboardingRequestError(
+      body?.message ?? `Request failed (${res.status})`,
+      res.status,
+      body?.code,
+    );
   }
 
   return (await res.json()) as T;
+}
+
+export function listOnboardingTenants(): Promise<OnboardingTenantSummary[]> {
+  return request("/tenants");
 }
 
 export function createTenant(input: {
   name: string;
   contactEmail: string;
   plan: string;
+  // Set only after the admin has seen the same-name warning and chosen to
+  // create a separate tenant anyway.
+  confirmDuplicate?: boolean;
 }): Promise<CreatedTenant> {
   return request("/tenants", { method: "POST", body: input });
+}
+
+export function updateTenantName(
+  tenantId: string,
+  name: string,
+): Promise<{ name: string }> {
+  return request(`/tenants/${tenantId}`, { method: "PATCH", body: { name } });
 }
 
 export function listModules(): Promise<AvailableModule[]> {
@@ -125,8 +171,23 @@ export function saveModuleConfig(
   });
 }
 
-export function provisionNumber(tenantId: string): Promise<ProvisionedNumber> {
-  return request(`/tenants/${tenantId}/number`, { method: "POST" });
+export function searchNumbers(
+  tenantId: string,
+  areaCode: string,
+): Promise<AvailableNumber[]> {
+  return request(
+    `/tenants/${tenantId}/numbers?areaCode=${encodeURIComponent(areaCode)}`,
+  );
+}
+
+export function provisionNumber(
+  tenantId: string,
+  phoneNumber: string,
+): Promise<ProvisionedNumber> {
+  return request(`/tenants/${tenantId}/number`, {
+    method: "POST",
+    body: { phoneNumber },
+  });
 }
 
 export function inviteOwner(

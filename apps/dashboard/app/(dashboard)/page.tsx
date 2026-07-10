@@ -4,7 +4,7 @@ import { useCurrentTenant } from "@/lib/use-current-tenant";
 import { useModuleWidgets } from "@/lib/module-loader";
 
 export default function BusinessSnapshotPage() {
-  const { tenant, loading } = useCurrentTenant();
+  const { tenant, loading, error: tenantError } = useCurrentTenant();
   const { widgets, error } = useModuleWidgets();
 
   return (
@@ -12,8 +12,17 @@ export default function BusinessSnapshotPage() {
       <h1 className="font-[family-name:var(--font-display)] text-3xl font-medium text-[var(--color-ink)]">
         {loading
           ? "Loading..."
-          : `Welcome, ${tenant?.tenantName || "your business"}`}
+          : tenantError
+            ? "Welcome"
+            : `Welcome, ${tenant?.tenantName || "your business"}`}
       </h1>
+
+      {tenantError && (
+        <p className="mt-1 text-sm text-[var(--color-status-attention)]">
+          We couldn&apos;t load your account details. Please refresh to try
+          again.
+        </p>
+      )}
 
       {error ? (
         <div className="mt-8 rounded-lg border border-[var(--color-status-attention)]/40 p-12 text-center text-[var(--color-status-attention)]">

@@ -22,6 +22,7 @@ interface UsersRow {
 export function useCurrentTenant() {
   const [tenant, setTenant] = useState<CurrentTenant | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -36,7 +37,7 @@ export function useCurrentTenant() {
         return;
       }
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("users")
         .select("tenant_id, role, tenants(name, status)")
         .eq("id", user.id)
@@ -44,23 +45,32 @@ export function useCurrentTenant() {
 
       if (!active) return;
 
-      if (data) {
-        setTenant({
-          tenantId: data.tenant_id,
-          tenantName: data.tenants?.name ?? "",
-          tenantStatus: data.tenants?.status ?? "",
-          role: data.role,
-        });
+      if (error || !data) {
+        setError(true);
+        setLoading(false);
+        return;
       }
+
+      setTenant({
+        tenantId: data.tenant_id,
+        tenantName: data.tenants?.name ?? "",
+        tenantStatus: data.tenants?.status ?? "",
+        role: data.role,
+      });
       setLoading(false);
     }
 
-    void load();
+    load().catch(() => {
+      if (active) {
+        setError(true);
+        setLoading(false);
+      }
+    });
 
     return () => {
       active = false;
     };
   }, []);
 
-  return { tenant, loading };
+  return { tenant, loading, error };
 }

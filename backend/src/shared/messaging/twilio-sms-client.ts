@@ -1,5 +1,6 @@
 import twilio, { Twilio } from 'twilio';
 import {
+  AvailableNumber,
   PurchasedNumber,
   SendMessageParams,
   SendMessageResult,
@@ -29,17 +30,29 @@ export class TwilioSmsClient implements SmsClient {
     this.messagingServiceSid = messagingServiceSid;
   }
 
-  async purchaseNumber(): Promise<PurchasedNumber> {
-    const [available] = await this.client
+  async searchAvailableNumbers(areaCode: string): Promise<AvailableNumber[]> {
+    const numbers = await this.client
       .availablePhoneNumbers('US')
-      .local.list({ smsEnabled: true, limit: 1 });
+      .local.list({ areaCode: Number(areaCode), smsEnabled: true, limit: 20 });
 
-    if (!available) {
-      throw new Error('No available Twilio phone numbers to purchase');
+    return numbers.map((n) => ({ phoneNumber: n.phoneNumber }));
+  }
+
+  async purchaseNumber(phoneNumber?: string): Promise<PurchasedNumber> {
+    let toBuy = phoneNumber;
+    if (!toBuy) {
+      const [available] = await this.client
+        .availablePhoneNumbers('US')
+        .local.list({ smsEnabled: true, limit: 1 });
+
+      if (!available) {
+        throw new Error('No available Twilio phone numbers to purchase');
+      }
+      toBuy = available.phoneNumber;
     }
 
     const purchased = await this.client.incomingPhoneNumbers.create({
-      phoneNumber: available.phoneNumber,
+      phoneNumber: toBuy,
     });
 
     return { phoneNumber: purchased.phoneNumber, twilioSid: purchased.sid };

@@ -1,7 +1,7 @@
 import { Injectable, Optional, OnModuleDestroy } from '@nestjs/common';
 import { Pool } from 'pg';
 import { SendMessageResult } from './sms-client.interface';
-import type { SmsClient } from './sms-client.interface';
+import type { AvailableNumber, SmsClient } from './sms-client.interface';
 import { StubSmsClient } from './stub-sms-client';
 import { TwilioSmsClient } from './twilio-sms-client';
 
@@ -19,6 +19,9 @@ export interface TenantPhoneNumberRow {
 export interface ProvisionNumberOptions {
   makeDefault?: boolean;
   label?: string;
+  // The specific number the admin selected from a search. Omitted for the
+  // pre-selection default path, where the provider buys the first available.
+  phoneNumber?: string;
 }
 
 export interface SendSmsOptions {
@@ -57,6 +60,12 @@ export class MessagingService implements OnModuleDestroy {
     this.client = smsClient ?? createSmsClient();
   }
 
+  // Read-only: the numbers available in an area code, so a local number can be
+  // chosen before any purchase. Buys nothing.
+  searchAvailableNumbers(areaCode: string): Promise<AvailableNumber[]> {
+    return this.client.searchAvailableNumbers(areaCode);
+  }
+
   async provisionNumberForTenant(
     tenantId: string,
     options?: ProvisionNumberOptions,
@@ -72,7 +81,7 @@ export class MessagingService implements OnModuleDestroy {
       return existing.rows.find((row) => row.is_default) ?? existing.rows[0];
     }
 
-    const purchased = await this.client.purchaseNumber();
+    const purchased = await this.client.purchaseNumber(options?.phoneNumber);
     await this.client.addNumberToMessagingService(purchased.twilioSid);
 
     const makeDefault =

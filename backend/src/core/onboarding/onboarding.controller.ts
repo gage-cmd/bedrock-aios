@@ -7,8 +7,10 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
+import type { AvailableNumber } from '../../shared/messaging/sms-client.interface';
 import { AdminGuard } from '../auth/admin.guard';
 import {
   DuplicateTenantNameError,
@@ -103,10 +105,32 @@ export class OnboardingController {
     return { saved: true };
   }
 
-  // STEP 5 -- provision the tenant's default number.
+  // STEP 5 (search) -- available local numbers for an area code. Read-only,
+  // buys nothing; lets the admin pick a number local to the client.
+  @Get('tenants/:tenantId/numbers')
+  searchNumbers(
+    @Param('tenantId') _tenantId: string,
+    @Query('areaCode') areaCode: string,
+  ): Promise<AvailableNumber[]> {
+    return this.wrap(() => this.onboarding.searchNumbers(areaCode));
+  }
+
+  // STEP 5 (purchase) -- buy the selected number and make it the default. The
+  // console always selects a number from the search first, so phoneNumber is
+  // required here; this is the irreversible, deliberate purchase.
   @Post('tenants/:tenantId/number')
-  provisionNumber(@Param('tenantId') tenantId: string) {
-    return this.wrap(() => this.onboarding.provisionNumber(tenantId));
+  provisionNumber(
+    @Param('tenantId') tenantId: string,
+    @Body() body: { phoneNumber?: string },
+  ) {
+    if (!body.phoneNumber) {
+      throw new BadRequestException(
+        'phoneNumber is required -- search and select a local number first',
+      );
+    }
+    return this.wrap(() =>
+      this.onboarding.provisionNumber(tenantId, body.phoneNumber),
+    );
   }
 
   // STEP 6 -- invite the client's first user as owner.

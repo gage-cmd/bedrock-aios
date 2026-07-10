@@ -3,6 +3,12 @@ export interface PurchasedNumber {
   twilioSid: string;
 }
 
+// A number offered by the provider for a given area code, before purchase.
+// Search is read-only and free; only purchaseNumber() spends money.
+export interface AvailableNumber {
+  phoneNumber: string;
+}
+
 export interface SendMessageParams {
   from: string;
   to: string;
@@ -18,7 +24,12 @@ export interface SendMessageResult {
 // and TwilioSmsClient (real, selected by SMS_PROVIDER=twilio). Neither the
 // messaging service nor its callers should know or care which one is active.
 export interface SmsClient {
-  purchaseNumber(): Promise<PurchasedNumber>;
+  // Read-only lookup of numbers available in an area code -- no purchase, so
+  // the admin can pick a local number before committing to buy one.
+  searchAvailableNumbers(areaCode: string): Promise<AvailableNumber[]>;
+  // Purchases phoneNumber if given (the one the admin selected); otherwise
+  // buys the first available number (the pre-selection default path).
+  purchaseNumber(phoneNumber?: string): Promise<PurchasedNumber>;
   // numberId is the Twilio phone number SID returned by purchaseNumber().
   addNumberToMessagingService(numberId: string): Promise<void>;
   sendMessage(params: SendMessageParams): Promise<SendMessageResult>;

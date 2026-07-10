@@ -1,5 +1,6 @@
 import { randomBytes, randomInt } from 'crypto';
 import {
+  AvailableNumber,
   PurchasedNumber,
   SendMessageParams,
   SendMessageResult,
@@ -12,11 +13,24 @@ import {
 // built on top of it can be exercised end to end before a real Twilio
 // account exists.
 export class StubSmsClient implements SmsClient {
-  purchaseNumber(): Promise<PurchasedNumber> {
-    const phoneNumber = `+1555${String(randomInt(0, 10_000_000)).padStart(7, '0')}`;
+  // Synthesizes numbers in the requested area code so the search-and-select
+  // step is fully exercisable with no Twilio account.
+  searchAvailableNumbers(areaCode: string): Promise<AvailableNumber[]> {
+    const numbers = Array.from({ length: 5 }, () => ({
+      phoneNumber: `+1${areaCode}${String(randomInt(0, 10_000_000)).padStart(7, '0')}`,
+    }));
+
+    return Promise.resolve(numbers);
+  }
+
+  purchaseNumber(phoneNumber?: string): Promise<PurchasedNumber> {
+    // Honour the selected number when given; otherwise mint a random one.
+    const number =
+      phoneNumber ??
+      `+1555${String(randomInt(0, 10_000_000)).padStart(7, '0')}`;
     const twilioSid = `PN${randomBytes(16).toString('hex')}`;
 
-    return Promise.resolve({ phoneNumber, twilioSid });
+    return Promise.resolve({ phoneNumber: number, twilioSid });
   }
 
   addNumberToMessagingService(numberId: string): Promise<void> {

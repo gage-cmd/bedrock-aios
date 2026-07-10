@@ -2,6 +2,7 @@ import { Injectable, Optional, OnModuleDestroy } from '@nestjs/common';
 import { Pool } from 'pg';
 import { MessagingService } from '../../shared/messaging/messaging.service';
 import type { TenantPhoneNumberRow } from '../../shared/messaging/messaging.service';
+import type { AvailableNumber } from '../../shared/messaging/sms-client.interface';
 import { ModuleRegistryService } from '../module-registry/module-registry.service';
 import type { InviteClient, InvitedUser } from './invite-client.interface';
 import { GoTrueInviteClient } from './gotrue-invite-client';
@@ -240,10 +241,35 @@ export class OnboardingService implements OnModuleDestroy {
     }
   }
 
-  // STEP 5 -- delegated wholesale to shared messaging, which owns numbers.
-  provisionNumber(tenantId: string): Promise<TenantPhoneNumberRow> {
+  // STEP 5 (search side) -- available local numbers for an area code, so the
+  // admin picks a number local to the client (local number = local trust)
+  // before anything is purchased. Read-only; validates the area code here so a
+  // bad one is caught before it ever reaches the provider.
+  async searchNumbers(areaCode: string): Promise<AvailableNumber[]> {
+    const trimmed = areaCode?.trim();
+    if (!/^\d{3}$/.test(trimmed ?? '')) {
+      throw new Error('Area code must be exactly 3 digits');
+    }
+    return this.messaging.searchAvailableNumbers(trimmed);
+  }
+
+  // STEP 5 (purchase side) -- buys the selected number and makes it default.
+  // phoneNumber is the one the admin chose from searchNumbers; validated E.164
+  // US here so a malformed value is refused before the purchase. Omitted only
+  // by direct callers that don't pre-select (tests), where the provider buys
+  // the first available number.
+  async provisionNumber(
+    tenantId: string,
+    phoneNumber?: string,
+  ): Promise<TenantPhoneNumberRow> {
+    if (phoneNumber !== undefined && !/^\+1\d{10}$/.test(phoneNumber)) {
+      throw new Error(
+        'Phone number must be E.164 US format, e.g. +14155551234',
+      );
+    }
     return this.messaging.provisionNumberForTenant(tenantId, {
       makeDefault: true,
+      phoneNumber,
     });
   }
 

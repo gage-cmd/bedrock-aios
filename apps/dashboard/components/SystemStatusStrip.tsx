@@ -15,14 +15,16 @@ interface ModuleStatusEntry {
 
 export function SystemStatusStrip() {
   const [entries, setEntries] = useState<ModuleStatusEntry[]>([]);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     let active = true;
 
     async function load() {
       const modules = await listEnabledModules();
-      if (!active || modules.length === 0) {
-        if (active) setEntries([]);
+      if (!active) return;
+      if (modules.length === 0) {
+        setEntries([]);
         return;
       }
 
@@ -37,12 +39,30 @@ export function SystemStatusStrip() {
       if (active) setEntries(results);
     }
 
-    void load();
+    load().catch(() => {
+      if (active) setError(true);
+    });
 
     return () => {
       active = false;
     };
   }, []);
+
+  if (error) {
+    return (
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-[var(--color-border)] bg-[var(--color-surface-card)] px-8 py-3">
+        <span className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-secondary)]">
+          System Status
+        </span>
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-[var(--color-status-attention)]" />
+          <span className="text-sm text-[var(--color-text-secondary)]">
+            Status unavailable &mdash; please refresh
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   if (entries.length === 0) return null;
 

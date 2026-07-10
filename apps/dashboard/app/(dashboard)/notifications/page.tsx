@@ -15,17 +15,24 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<NotificationRow[] | null>(
     null,
   );
+  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
 
     async function load() {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("notifications")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (active) setNotifications((data as NotificationRow[]) ?? []);
+      if (!active) return;
+      if (error) {
+        setError("We couldn't load your notifications. Please refresh to try again.");
+        return;
+      }
+      setNotifications((data as NotificationRow[]) ?? []);
     }
 
     void load();
@@ -36,7 +43,15 @@ export default function NotificationsPage() {
   }, []);
 
   async function markAsRead(id: string) {
-    await supabase.from("notifications").update({ read: true }).eq("id", id);
+    setActionError(null);
+    const { error } = await supabase
+      .from("notifications")
+      .update({ read: true })
+      .eq("id", id);
+    if (error) {
+      setActionError("We couldn't update that notification. Please try again.");
+      return;
+    }
     setNotifications(
       (prev) =>
         prev?.map((n) => (n.id === id ? { ...n, read: true } : n)) ?? null,
@@ -49,13 +64,25 @@ export default function NotificationsPage() {
         Notifications
       </h1>
 
-      {notifications === null && (
+      {error && (
+        <p className="mt-4 text-sm text-[var(--color-status-attention)]">
+          {error}
+        </p>
+      )}
+
+      {actionError && (
+        <p className="mt-4 text-sm text-[var(--color-status-attention)]">
+          {actionError}
+        </p>
+      )}
+
+      {!error && notifications === null && (
         <p className="mt-4 text-[var(--color-text-secondary)]">
           Loading...
         </p>
       )}
 
-      {notifications?.length === 0 && (
+      {!error && notifications?.length === 0 && (
         <div className="mt-4 rounded-lg border border-dashed border-[var(--color-border)] p-12 text-center text-[var(--color-text-secondary)]">
           No notifications.
         </div>

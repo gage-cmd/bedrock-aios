@@ -25,6 +25,7 @@ export function SettingsTab() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const businessNameRef = useRef<HTMLInputElement>(null);
   const destinationNumberRef = useRef<HTMLInputElement>(null);
@@ -36,7 +37,7 @@ export function SettingsTab() {
     let active = true;
 
     async function load() {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("module_manifest")
         .select("id, config")
         .eq("tenant_id", tenant!.tenantId)
@@ -44,6 +45,10 @@ export function SettingsTab() {
         .maybeSingle();
 
       if (!active) return;
+      if (error) {
+        setLoadFailed(true);
+        return;
+      }
       setManifestId((data?.id as string | undefined) ?? null);
       setConfig((data?.config as MissedCallTextbackConfig | undefined) ?? {});
     }
@@ -93,6 +98,14 @@ export function SettingsTab() {
     }
     setConfig(newConfig);
     setSaved(true);
+  }
+
+  if (loadFailed) {
+    return (
+      <p className="text-sm text-[var(--color-status-attention)]">
+        We couldn&apos;t load these settings. Please refresh to try again.
+      </p>
+    );
   }
 
   if (loading || (tenant && config === null)) {

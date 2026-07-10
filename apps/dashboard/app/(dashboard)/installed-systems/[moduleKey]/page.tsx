@@ -14,6 +14,7 @@ export default function ModuleDetailPage() {
 
   const [module, setModule] = useState<EnabledModule | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -30,7 +31,9 @@ export default function ModuleDetailPage() {
       setModule(match);
     }
 
-    void load();
+    load().catch(() => {
+      if (active) setError(true);
+    });
     return () => {
       active = false;
     };
@@ -42,6 +45,22 @@ export default function ModuleDetailPage() {
 
   function selectTab(key: string) {
     router.replace(`/installed-systems/${moduleKey}?tab=${key}`);
+  }
+
+  if (error) {
+    return (
+      <div className="flex-1 p-8">
+        <Link
+          href="/installed-systems"
+          className="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent-primary)]"
+        >
+          &larr; Installed Systems
+        </Link>
+        <p className="mt-4 text-sm text-[var(--color-status-attention)]">
+          We couldn&apos;t load this system. Please refresh to try again.
+        </p>
+      </div>
+    );
   }
 
   if (notFound) {

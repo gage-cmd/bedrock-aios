@@ -29,18 +29,24 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [checked, setChecked] = useState(false);
+  const [authError, setAuthError] = useState(false);
 
   useEffect(() => {
     let active = true;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!active) return;
-      if (!session) {
-        router.replace("/login");
-        return;
-      }
-      setChecked(true);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        if (!active) return;
+        if (!session) {
+          router.replace("/login");
+          return;
+        }
+        setChecked(true);
+      })
+      .catch(() => {
+        if (active) setAuthError(true);
+      });
 
     const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
@@ -55,6 +61,24 @@ export default function DashboardLayout({
       listener.subscription.unsubscribe();
     };
   }, [router]);
+
+  if (authError) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-8">
+        <div className="text-center">
+          <p className="text-sm text-[var(--color-status-attention)]">
+            We couldn&apos;t load your account. Please retry.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-3 rounded-full bg-[var(--color-accent-primary)] px-5 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!checked) {
     return null;

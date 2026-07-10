@@ -24,15 +24,22 @@ async function authHeader(): Promise<{ Authorization: string } | null> {
   return { Authorization: `Bearer ${session.access_token}` };
 }
 
+// Throws on failure (no session / non-OK response) rather than returning an
+// empty list, so callers can tell "genuinely no modules" apart from "the
+// request failed" -- the empty return used to render as a misleading
+// "nothing installed" state. getModuleStatus below intentionally keeps
+// degrading to null instead of throwing: it runs once per module inside a
+// Promise.all, and one module's status hiccup should show an unknown dot,
+// not take down the whole list.
 export async function listEnabledModules(): Promise<EnabledModule[]> {
   const headers = await authHeader();
-  if (!headers) return [];
+  if (!headers) throw new Error("Not signed in");
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_BACKEND_URL}/module-manifest`,
     { headers },
   );
-  if (!res.ok) return [];
+  if (!res.ok) throw new Error(`Request failed (${res.status})`);
 
   return res.json() as Promise<EnabledModule[]>;
 }

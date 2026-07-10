@@ -38,7 +38,7 @@ describe('missed-call-textback settings storage', () => {
     businessName: 'Custom Co',
     destinationNumber: '+15559990000',
     ringTimeoutSeconds: 35,
-    textBackTemplate: "Custom: {business_name} will ring you right back.",
+    textBackTemplate: 'Custom: {business_name} will ring you right back.',
   };
 
   async function provisionNumber(tenantId: string, sid: string) {
@@ -86,9 +86,10 @@ describe('missed-call-textback settings storage', () => {
 
   afterAll(async () => {
     const tenantIds = [fullConfigTenantId, defaultsTenantId, noConfigTenantId];
-    await setupClient.query(`delete from activity_log where tenant_id = any($1)`, [
-      tenantIds,
-    ]);
+    await setupClient.query(
+      `delete from activity_log where tenant_id = any($1)`,
+      [tenantIds],
+    );
     await setupClient.query(
       `delete from missed_call_textback.missed_calls where tenant_id = any($1)`,
       [tenantIds],
@@ -97,10 +98,13 @@ describe('missed-call-textback settings storage', () => {
       `delete from shared_messaging.tenant_phone_numbers where tenant_id = any($1)`,
       [tenantIds],
     );
-    await setupClient.query(`delete from module_manifest where tenant_id = any($1)`, [
+    await setupClient.query(
+      `delete from module_manifest where tenant_id = any($1)`,
+      [tenantIds],
+    );
+    await setupClient.query(`delete from tenants where id = any($1)`, [
       tenantIds,
     ]);
-    await setupClient.query(`delete from tenants where id = any($1)`, [tenantIds]);
     await setupClient.end();
     await service.onModuleDestroy();
     await messaging.onModuleDestroy();
@@ -127,7 +131,9 @@ describe('missed-call-textback settings storage', () => {
     )) as MissedCallRow;
 
     expect(result.textback_sent).toBe(true);
-    expect(result.textback_body).toBe('Custom: Custom Co will ring you right back.');
+    expect(result.textback_body).toBe(
+      'Custom: Custom Co will ring you right back.',
+    );
   });
 
   it('falls back to the default template when the config omits textBackTemplate', async () => {

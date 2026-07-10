@@ -88,7 +88,9 @@ export class OrchestratorService implements OnModuleDestroy {
   ) {
     this.ai =
       aiClient ??
-      new AnthropicAiClient(process.env.ORCHESTRATOR_MODEL ?? 'claude-sonnet-5');
+      new AnthropicAiClient(
+        process.env.ORCHESTRATOR_MODEL ?? 'claude-sonnet-5',
+      );
   }
 
   async ask(tenantId: string, question: string): Promise<{ answer: string }> {

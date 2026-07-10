@@ -80,12 +80,15 @@ describe('MissedCallTextbackController', () => {
 
   describe('read endpoints', () => {
     it('getSnapshot delegates to the service for the current tenant', async () => {
-      const snapshot = { metric: 'Missed calls recovered this week', value: '3 text-backs sent' };
+      const snapshot = {
+        metric: 'Missed calls recovered this week',
+        value: '3 text-backs sent',
+      };
       service.getSnapshot.mockResolvedValue(snapshot);
 
-      await expect(controller.getSnapshot(reqForTenant(TENANT_ID))).resolves.toBe(
-        snapshot,
-      );
+      await expect(
+        controller.getSnapshot(reqForTenant(TENANT_ID)),
+      ).resolves.toBe(snapshot);
       expect(service.getSnapshot).toHaveBeenCalledWith(TENANT_ID);
     });
 

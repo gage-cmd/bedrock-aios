@@ -6,23 +6,48 @@ import type {
   SettingsSchema,
 } from "@/lib/onboarding-client";
 
-// Generic settings-schema-driven form renderer (Onboarding Console Step 4).
-// Given ANY module's settings.schema.json it renders the right field per
-// property -- text/url/email inputs, textareas for long template strings,
-// number inputs with min/max, checkboxes for booleans -- seeded with the
-// schema's defaults and enforcing its required list. It contains zero
-// module-specific logic: a brand-new module that ships a settings.schema.json
-// gets a working onboarding settings form for free.
+// Generic settings-schema-driven form renderer. Given ANY module's
+// settings.schema.json it renders the right field per property -- text/url/email
+// inputs, textareas for long template strings, number inputs with min/max,
+// checkboxes for booleans -- seeded with the schema's defaults and enforcing its
+// required list. It contains zero module-specific logic: a brand-new module that
+// ships a settings.schema.json gets a working form for free.
+//
+// Used by both the admin Onboarding Console (Step 4) and the tenant dashboard's
+// per-module Settings tab. The two only differ in look and in whether the form
+// is editable, so the palette is a `theme` prop (defaulting to the admin look,
+// so the console is untouched) and `readOnly` disables inputs + hides submit.
+
+// The class strings the form paints with. Defaults to the admin console palette;
+// the tenant dashboard passes its CSS-variable tokens.
+export interface SchemaFormTheme {
+  input: string;
+  label: string;
+  description: string;
+  submit: string;
+  error: string;
+}
+
+const ADMIN_THEME: SchemaFormTheme = {
+  input:
+    "rounded-md border border-black/[.08] px-3 py-2 text-black disabled:opacity-50 dark:border-white/[.145] dark:bg-black dark:text-zinc-50",
+  label: "flex flex-col gap-1 text-sm text-zinc-700 dark:text-zinc-300",
+  description: "text-xs text-zinc-500 dark:text-zinc-400",
+  submit:
+    "self-start rounded-md bg-black px-4 py-2 text-sm text-white disabled:opacity-50 dark:bg-zinc-50 dark:text-black",
+  error: "text-sm text-red-600",
+};
 
 interface SchemaFormProps {
   schema: SettingsSchema;
   initialValues?: Record<string, unknown>;
   submitLabel: string;
   onSubmit: (values: Record<string, unknown>) => void | Promise<void>;
+  // When true the form is display-only: every field is disabled and the submit
+  // button is hidden. The tenant Settings tab uses this for non-owner members.
+  readOnly?: boolean;
+  theme?: SchemaFormTheme;
 }
-
-const inputClasses =
-  "rounded-md border border-black/[.08] px-3 py-2 text-black disabled:opacity-50 dark:border-white/[.145] dark:bg-black dark:text-zinc-50";
 
 // A long default strongly suggests prose (message templates and the like);
 // give it a textarea instead of a one-line input. Schema-shape heuristic
@@ -83,6 +108,8 @@ export function SchemaForm({
   initialValues,
   submitLabel,
   onSubmit,
+  readOnly = false,
+  theme = ADMIN_THEME,
 }: SchemaFormProps) {
   const required = new Set(schema.required ?? []);
   const entries = Object.entries(schema.properties);
@@ -141,10 +168,7 @@ export function SchemaForm({
   return (
     <form onSubmit={handleSubmit} className="flex max-w-lg flex-col gap-4">
       {entries.map(([name, prop]) => (
-        <label
-          key={name}
-          className="flex flex-col gap-1 text-sm text-zinc-700 dark:text-zinc-300"
-        >
+        <label key={name} className={theme.label}>
           <span>
             {prop.title ?? name}
             {required.has(name) && <span className="text-red-500"> *</span>}
@@ -154,6 +178,7 @@ export function SchemaForm({
               type="checkbox"
               checked={values[name] === true}
               onChange={(e) => setValue(name, e.target.checked)}
+              disabled={readOnly}
               className="h-4 w-4 self-start"
             />
           ) : prop.type === "integer" || prop.type === "number" ? (
@@ -165,7 +190,8 @@ export function SchemaForm({
               max={prop.maximum}
               step={prop.type === "integer" ? 1 : undefined}
               required={required.has(name)}
-              className={inputClasses}
+              disabled={readOnly}
+              className={theme.input}
             />
           ) : isLongText(prop) ? (
             <textarea
@@ -173,7 +199,8 @@ export function SchemaForm({
               onChange={(e) => setValue(name, e.target.value)}
               rows={3}
               required={required.has(name)}
-              className={inputClasses}
+              disabled={readOnly}
+              className={theme.input}
             />
           ) : (
             <input
@@ -182,26 +209,23 @@ export function SchemaForm({
               onChange={(e) => setValue(name, e.target.value)}
               required={required.has(name)}
               pattern={prop.pattern}
-              className={inputClasses}
+              disabled={readOnly}
+              className={theme.input}
             />
           )}
           {prop.description && (
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">
-              {prop.description}
-            </span>
+            <span className={theme.description}>{prop.description}</span>
           )}
         </label>
       ))}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className={theme.error}>{error}</p>}
 
-      <button
-        type="submit"
-        disabled={submitting}
-        className="self-start rounded-md bg-black px-4 py-2 text-sm text-white disabled:opacity-50 dark:bg-zinc-50 dark:text-black"
-      >
-        {submitting ? "Saving..." : submitLabel}
-      </button>
+      {!readOnly && (
+        <button type="submit" disabled={submitting} className={theme.submit}>
+          {submitting ? "Saving..." : submitLabel}
+        </button>
+      )}
     </form>
   );
 }

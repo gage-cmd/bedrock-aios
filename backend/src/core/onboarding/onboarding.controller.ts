@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
   Get,
   Param,
@@ -9,12 +10,16 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AdminGuard } from '../auth/admin.guard';
-import { OnboardingService } from './onboarding.service';
+import {
+  DuplicateTenantNameError,
+  OnboardingService,
+} from './onboarding.service';
 import type {
   AvailableModule,
   CreatedTenant,
   CreateTenantInput,
   OnboardingState,
+  OnboardingTenantSummary,
 } from './onboarding.service';
 
 // The Onboarding Console's entire backend surface. Guarded at the controller
@@ -33,10 +38,32 @@ import type {
 export class OnboardingController {
   constructor(private readonly onboarding: OnboardingService) {}
 
-  // STEP 2 -- create the tenant (status 'onboarding').
+  // The resume list: tenants still mid-onboarding, so an interrupted setup is
+  // continued from the correct step instead of re-created.
+  @Get('tenants')
+  listOnboardingTenants(): Promise<OnboardingTenantSummary[]> {
+    return this.wrap(() => this.onboarding.listOnboardingTenants());
+  }
+
+  // STEP 2 -- create the tenant (status 'onboarding'). A same-name tenant is
+  // answered 409 with { code: 'duplicate_name' } (not a generic 400) so the
+  // console can offer resume-or-confirm; every other failure stays a 400.
   @Post('tenants')
-  createTenant(@Body() body: CreateTenantInput): Promise<CreatedTenant> {
-    return this.wrap(() => this.onboarding.createTenant(body));
+  async createTenant(@Body() body: CreateTenantInput): Promise<CreatedTenant> {
+    try {
+      return await this.onboarding.createTenant(body);
+    } catch (err) {
+      if (err instanceof DuplicateTenantNameError) {
+        throw new ConflictException({
+          code: 'duplicate_name',
+          message: err.message,
+          name: err.tenantName,
+        });
+      }
+      throw new BadRequestException(
+        err instanceof Error ? err.message : 'Request failed',
+      );
+    }
   }
 
   // STEP 3 -- what can be enabled, straight from the module registry.

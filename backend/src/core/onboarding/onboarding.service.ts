@@ -16,6 +16,32 @@ export interface CreateTenantInput {
   name: string;
   contactEmail: string;
   plan: string;
+  // Set once the admin has seen the same-name warning and still wants a
+  // separate tenant (two franchises of one business, say). Absent/false makes
+  // createTenant refuse a duplicate name so an in-progress setup is resumed
+  // rather than re-created.
+  confirmDuplicate?: boolean;
+}
+
+// A tenant still mid-onboarding, for the resume list.
+export interface OnboardingTenantSummary {
+  tenantId: string;
+  name: string;
+  createdAt: string;
+}
+
+// Thrown by createTenant when a tenant of the same name already exists and the
+// admin hasn't confirmed the duplicate. Carried as its own type so the
+// controller can answer 409 (with the offending name) instead of a generic
+// 400 -- the console needs to tell these apart to offer "resume or confirm".
+export class DuplicateTenantNameError extends Error {
+  constructor(public readonly tenantName: string) {
+    super(
+      `A client named "${tenantName}" already exists -- resume it from the ` +
+        `in-progress list, or confirm to create a separate one`,
+    );
+    this.name = 'DuplicateTenantNameError';
+  }
 }
 
 export interface CreatedTenant {
@@ -105,6 +131,19 @@ export class OnboardingService implements OnModuleDestroy {
       throw new Error(`Unknown plan: only '${ONBOARDING_PLAN}' is offered`);
     }
 
+    // Guard against onboarding the same business twice. Case-insensitive on the
+    // trimmed name; overridable via confirmDuplicate for genuinely distinct
+    // businesses that share a name.
+    if (!input.confirmDuplicate) {
+      const existing = await this.pool.query(
+        `select 1 from tenants where lower(name) = lower($1) limit 1`,
+        [name],
+      );
+      if ((existing.rowCount ?? 0) > 0) {
+        throw new DuplicateTenantNameError(name);
+      }
+    }
+
     const tenant = await this.pool.query<{ id: string; status: string }>(
       `insert into tenants (name, status) values ($1, 'onboarding') returning id, status`,
       [name],
@@ -123,6 +162,17 @@ export class OnboardingService implements OnModuleDestroy {
       plan: input.plan,
       contactEmail,
     };
+  }
+
+  // The resume surface: every tenant still mid-onboarding, newest first. Lets
+  // an interrupted setup be continued from the correct step instead of started
+  // over -- which, without this, silently created a duplicate tenant.
+  async listOnboardingTenants(): Promise<OnboardingTenantSummary[]> {
+    const result = await this.pool.query<OnboardingTenantSummary>(
+      `select id as "tenantId", name, created_at as "createdAt"
+       from tenants where status = 'onboarding' order by created_at desc`,
+    );
+    return result.rows;
   }
 
   // STEP 3 (read side) -- what this deployment can offer, straight from the

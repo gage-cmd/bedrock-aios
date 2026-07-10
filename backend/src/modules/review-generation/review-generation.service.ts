@@ -1,5 +1,10 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Pool } from 'pg';
+import type {
+  ModuleContract,
+  ModuleStatus,
+  SnapshotResult,
+} from '../../core/module-registry/module-contract';
 import { MessagingService } from '../../shared/messaging/messaging.service';
 
 export interface ContactRow {
@@ -31,14 +36,6 @@ export interface ReviewResponseRow {
   submitted_at: string;
 }
 
-export type ModuleStatus =
-  { status: 'connected' } | { status: 'needs attention'; reason: string };
-
-export interface SnapshotResult {
-  metric: string;
-  value: string;
-}
-
 // Mirrors prompts/review-request-sms.txt -- kept as a plain constant (rather
 // than read off disk at runtime) so the module doesn't need a build step to
 // copy non-ts assets into dist for one string. The .txt file is the
@@ -57,7 +54,9 @@ function renderTemplate(
 }
 
 @Injectable()
-export class ReviewGenerationService implements OnModuleDestroy {
+export class ReviewGenerationService
+  implements ModuleContract, OnModuleDestroy
+{
   private readonly pool = new Pool({
     host: process.env.SUPABASE_DB_HOST,
     port: Number(process.env.SUPABASE_DB_PORT),

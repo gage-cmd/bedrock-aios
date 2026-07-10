@@ -1,5 +1,10 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Pool } from 'pg';
+import type {
+  ModuleContract,
+  ModuleStatus,
+  SnapshotResult,
+} from '../../core/module-registry/module-contract';
 import { MessagingService } from '../../shared/messaging/messaging.service';
 
 export interface MissedCallRow {
@@ -10,14 +15,6 @@ export interface MissedCallRow {
   textback_sent: boolean;
   textback_body: string | null;
   created_at: string;
-}
-
-export type ModuleStatus =
-  { status: 'connected' } | { status: 'needs attention'; reason: string };
-
-export interface SnapshotResult {
-  metric: string;
-  value: string;
 }
 
 const DEFAULT_TEXTBACK_TEMPLATE =
@@ -35,7 +32,9 @@ function renderTemplate(template: string, businessName: string): string {
 }
 
 @Injectable()
-export class MissedCallTextbackService implements OnModuleDestroy {
+export class MissedCallTextbackService
+  implements ModuleContract, OnModuleDestroy
+{
   private readonly pool = new Pool({
     host: process.env.SUPABASE_DB_HOST,
     port: Number(process.env.SUPABASE_DB_PORT),

@@ -29,6 +29,7 @@ const WIDGET_REGISTRY: Record<
 // in one module's widget can't take down the rest of the dashboard.
 export function useModuleWidgets() {
   const [modules, setModules] = useState<EnabledModule[]>([]);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -45,19 +46,25 @@ export function useModuleWidgets() {
         { headers: { Authorization: `Bearer ${session.access_token}` } },
       );
 
-      if (!active || !res.ok) return;
+      if (!active) return;
+      if (!res.ok) {
+        setError(true);
+        return;
+      }
 
       setModules((await res.json()) as EnabledModule[]);
     }
 
-    void load();
+    load().catch(() => {
+      if (active) setError(true);
+    });
 
     return () => {
       active = false;
     };
   }, []);
 
-  return modules
+  const widgets = modules
     .filter((m) => m.moduleKey in WIDGET_REGISTRY)
     .map((m) => {
       const Widget = WIDGET_REGISTRY[m.moduleKey];
@@ -67,4 +74,6 @@ export function useModuleWidgets() {
         </ModuleErrorBoundary>
       );
     });
+
+  return { widgets, error };
 }

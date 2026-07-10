@@ -97,6 +97,109 @@ function inviteClientFromEnv(): InviteClient {
     : new StubInviteClient();
 }
 
+// The subset of JSON Schema the console's settings forms use, enough to
+// validate saved config server-side rather than trusting the form's HTML
+// `required`/pattern attributes (which a replayed or out-of-band request skips).
+interface SchemaProperty {
+  type?: 'string' | 'integer' | 'number' | 'boolean';
+  format?: string;
+  pattern?: string;
+  minimum?: number;
+  maximum?: number;
+}
+
+interface SettingsSchemaShape {
+  properties?: Record<string, SchemaProperty>;
+  required?: string[];
+}
+
+function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+// RFC-5322 is overkill here; this is the same shape the HTML email input and
+// the module settings pages accept.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateProperty(
+  moduleKey: string,
+  key: string,
+  prop: SchemaProperty,
+  value: unknown,
+): void {
+  const label = `${moduleKey}: "${key}"`;
+  switch (prop.type) {
+    case 'string': {
+      if (typeof value !== 'string') throw new Error(`${label} must be text`);
+      if (prop.format === 'email' && !EMAIL_RE.test(value)) {
+        throw new Error(`${label} must be a valid email address`);
+      }
+      if (prop.format === 'uri' && !isHttpUrl(value)) {
+        throw new Error(`${label} must be a valid URL`);
+      }
+      if (prop.pattern && !new RegExp(prop.pattern).test(value)) {
+        throw new Error(`${label} is not in the required format`);
+      }
+      break;
+    }
+    case 'integer':
+    case 'number': {
+      if (typeof value !== 'number' || !Number.isFinite(value)) {
+        throw new Error(`${label} must be a number`);
+      }
+      if (prop.type === 'integer' && !Number.isInteger(value)) {
+        throw new Error(`${label} must be a whole number`);
+      }
+      if (prop.minimum !== undefined && value < prop.minimum) {
+        throw new Error(`${label} must be at least ${prop.minimum}`);
+      }
+      if (prop.maximum !== undefined && value > prop.maximum) {
+        throw new Error(`${label} must be at most ${prop.maximum}`);
+      }
+      break;
+    }
+    case 'boolean': {
+      if (typeof value !== 'boolean') {
+        throw new Error(`${label} must be true or false`);
+      }
+      break;
+    }
+  }
+}
+
+// Enforces the module's settings.schema.json against submitted config: every
+// required field present, and every known field the right type/format/pattern.
+// Keys not in the schema are dropped rather than rejected, so a newer form than
+// the backend expects doesn't hard-fail.
+function validateAndSanitizeConfig(
+  moduleKey: string,
+  schema: SettingsSchemaShape,
+  config: Record<string, unknown>,
+): Record<string, unknown> {
+  const properties = schema.properties ?? {};
+
+  for (const key of schema.required ?? []) {
+    const value = config[key];
+    if (value === undefined || value === null || value === '') {
+      throw new Error(`${moduleKey}: "${key}" is required`);
+    }
+  }
+
+  const sanitized: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(config)) {
+    const prop = properties[key];
+    if (!prop) continue; // ignore unknown keys
+    validateProperty(moduleKey, key, prop, value);
+    sanitized[key] = value;
+  }
+  return sanitized;
+}
+
 @Injectable()
 export class OnboardingService implements OnModuleDestroy {
   private readonly pool = new Pool({
@@ -225,20 +328,54 @@ export class OnboardingService implements OnModuleDestroy {
   // STEP 4 (save side) -- writes exactly where every module already reads its
   // settings: the config JSONB on that module's module_manifest row (the same
   // row the tenant dashboard's settings forms write). No new storage.
+  //
+  // Validates against the module's own settings.schema.json before writing, so
+  // a bad value (missing required field, malformed number/URL/email) is caught
+  // here rather than at runtime in production -- the HTML form attributes are a
+  // UX nicety, not the guard. A module with no schema saves as-is.
   async saveModuleConfig(
     tenantId: string,
     moduleKey: string,
     config: Record<string, unknown>,
   ): Promise<void> {
+    const schema = await this.registry.readModuleFile<SettingsSchemaShape>(
+      moduleKey,
+      'settings.schema.json',
+    );
+    const toSave = schema
+      ? validateAndSanitizeConfig(moduleKey, schema, config)
+      : config;
+
     const result = await this.pool.query(
       `update module_manifest set config = $3 where tenant_id = $1 and module_key = $2`,
-      [tenantId, moduleKey, JSON.stringify(config)],
+      [tenantId, moduleKey, JSON.stringify(toSave)],
     );
     if (result.rowCount === 0) {
       throw new Error(
         `Module ${moduleKey} is not enabled for this tenant -- enable it before configuring`,
       );
     }
+  }
+
+  // Edit-from-summary: rename a tenant while it is still being onboarded, so a
+  // typo caught on the confirmation screen is fixed in place instead of forcing
+  // an abandon-and-recreate. Guarded to 'onboarding' status -- this console
+  // path never renames a live tenant.
+  async updateTenantName(
+    tenantId: string,
+    name: string,
+  ): Promise<{ name: string }> {
+    const trimmed = name?.trim();
+    if (!trimmed) throw new Error('Business name is required');
+
+    const result = await this.pool.query<{ name: string }>(
+      `update tenants set name = $2 where id = $1 and status = 'onboarding' returning name`,
+      [tenantId, trimmed],
+    );
+    if (result.rowCount === 0) {
+      throw new Error('Tenant not found or no longer in onboarding');
+    }
+    return { name: result.rows[0].name };
   }
 
   // STEP 5 (search side) -- available local numbers for an area code, so the

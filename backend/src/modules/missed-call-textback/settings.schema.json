@@ -11,7 +11,8 @@
     "destinationNumber": {
       "type": "string",
       "title": "Forwarding number",
-      "description": "The line an incoming call rings before it counts as missed (e.g. the front desk). Consumed by the Twilio voice webhooks."
+      "description": "The line an incoming call rings before it counts as missed (e.g. the front desk). Consumed by the Twilio voice webhooks. Must be E.164 US format, e.g. +14155551234.",
+      "pattern": "^\\+1\\d{10}$"
     },
     "ringTimeoutSeconds": {
       "type": "integer",

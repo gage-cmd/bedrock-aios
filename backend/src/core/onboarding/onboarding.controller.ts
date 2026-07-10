@@ -5,6 +5,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -66,6 +67,22 @@ export class OnboardingController {
         err instanceof Error ? err.message : 'Request failed',
       );
     }
+  }
+
+  // Edit-from-summary: rename a tenant still being onboarded, so a typo caught
+  // on the confirmation screen is fixed in place. Onboarding-only in the
+  // service; this never renames a live tenant.
+  @Patch('tenants/:tenantId')
+  updateTenant(
+    @Param('tenantId') tenantId: string,
+    @Body() body: { name?: string },
+  ): Promise<{ name: string }> {
+    if (!body.name) {
+      throw new BadRequestException('name is required');
+    }
+    return this.wrap(() =>
+      this.onboarding.updateTenantName(tenantId, body.name!),
+    );
   }
 
   // STEP 3 -- what can be enabled, straight from the module registry.

@@ -85,7 +85,11 @@ describe('onboarded tenant isolation', () => {
       googleReviewUrl: 'https://g.page/r/isolation/review',
       smsTemplate: 'Thanks from {business_name}!',
     });
-    await onboarding.provisionNumber(newTenantId);
+    await onboarding.provisionNumber(
+      newTenantId,
+      undefined,
+      'MG00000000000000000000000000000001',
+    );
     await onboarding.inviteOwner(newTenantId, 'isolation-owner@example.com');
     await onboarding.activate(newTenantId);
 

@@ -100,6 +100,9 @@ export default function OnboardingConsolePage() {
     null,
   );
   const [selectedNumber, setSelectedNumber] = useState<string | null>(null);
+  // The client's own Twilio Messaging Service SID (ISV model). Pasted in by the
+  // admin during the number step; required before a number can be purchased.
+  const [messagingServiceSid, setMessagingServiceSid] = useState("");
   const [invitedEmail, setInvitedEmail] = useState<string | null>(null);
   const [summary, setSummary] = useState<OnboardingState | null>(null);
   // A same-name tenant the admin tried to create: they resume it or confirm a
@@ -143,6 +146,7 @@ export default function OnboardingConsolePage() {
     setAreaCode("");
     setNumberResults(null);
     setSelectedNumber(null);
+    setMessagingServiceSid("");
     setInvitedEmail(null);
     setSummary(null);
     setDuplicate(null);
@@ -295,10 +299,16 @@ export default function OnboardingConsolePage() {
   }
 
   // STEP 4 (purchase) -- buy the selected number. The irreversible action.
+  // Both the selected number and the client's Messaging Service SID are
+  // required before the purchase (ISV model).
   async function handleProvisionNumber() {
-    if (!tenant || !selectedNumber) return;
+    if (!tenant || !selectedNumber || !messagingServiceSid.trim()) return;
     const result = await run(() =>
-      provisionNumber(tenant.tenantId, selectedNumber),
+      provisionNumber(
+        tenant.tenantId,
+        selectedNumber,
+        messagingServiceSid.trim(),
+      ),
     );
     if (result) setAssignedNumber(result.phone_number);
   }
@@ -585,9 +595,24 @@ export default function OnboardingConsolePage() {
                       </li>
                     ))}
                   </ul>
+                  <label className="flex flex-col gap-1 text-sm text-zinc-700 dark:text-zinc-300">
+                    Messaging Service SID
+                    <input
+                      value={messagingServiceSid}
+                      onChange={(e) => setMessagingServiceSid(e.target.value)}
+                      placeholder="MG..."
+                      className={`${inputClasses} font-mono`}
+                    />
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                      The client&apos;s own registered Messaging Service -- the
+                      number is provisioned into it. Required before purchase.
+                    </span>
+                  </label>
                   <button
                     onClick={() => void handleProvisionNumber()}
-                    disabled={busy || !selectedNumber}
+                    disabled={
+                      busy || !selectedNumber || !messagingServiceSid.trim()
+                    }
                     className={buttonClasses}
                   >
                     {busy ? "Purchasing..." : "Purchase this number"}

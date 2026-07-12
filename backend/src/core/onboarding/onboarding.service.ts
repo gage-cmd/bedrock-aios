@@ -272,18 +272,35 @@ export class OnboardingService implements OnModuleDestroy {
   // US here so a malformed value is refused before the purchase. Omitted only
   // by direct callers that don't pre-select (tests), where the provider buys
   // the first available number.
+  //
+  // messagingServiceSid is the client's own Twilio Messaging Service (ISV
+  // model). This path always purchases (makeDefault: true), so the SID is
+  // always required and validated here before anything is bought.
   async provisionNumber(
     tenantId: string,
     phoneNumber?: string,
+    messagingServiceSid?: string,
   ): Promise<TenantPhoneNumberRow> {
     if (phoneNumber !== undefined && !/^\+1\d{10}$/.test(phoneNumber)) {
       throw new Error(
         'Phone number must be E.164 US format, e.g. +14155551234',
       );
     }
+    const sid = messagingServiceSid?.trim();
+    if (!sid) {
+      throw new Error(
+        'A Messaging Service SID is required -- each client sends through their own registered Messaging Service',
+      );
+    }
+    if (!/^MG[0-9a-f]{32}$/i.test(sid)) {
+      throw new Error(
+        'Messaging Service SID must be a Twilio Messaging Service SID, e.g. MG followed by 32 hex characters',
+      );
+    }
     return this.messaging.provisionNumberForTenant(tenantId, {
       makeDefault: true,
       phoneNumber,
+      messagingServiceSid: sid,
     });
   }
 

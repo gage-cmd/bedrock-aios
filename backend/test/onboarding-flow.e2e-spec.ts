@@ -197,7 +197,11 @@ describe('Onboarding Console full flow (e2e)', () => {
   });
 
   it('provisions a default number and invites the owner', async () => {
-    const number = await onboarding.provisionNumber(tenantId);
+    const number = await onboarding.provisionNumber(
+      tenantId,
+      undefined,
+      'MG00000000000000000000000000000001',
+    );
     expect(number.phone_number).toMatch(/^\+1/);
     expect(number.is_default).toBe(true);
 

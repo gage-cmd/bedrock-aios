@@ -13,21 +13,22 @@ import {
 // change, not a build.
 export class TwilioSmsClient implements SmsClient {
   private readonly client: Twilio;
-  private readonly messagingServiceSid: string;
 
   constructor() {
+    // Account-wide credentials only. The Messaging Service SID is NOT read here:
+    // under the ISV model it is per-tenant (each client's own registered
+    // service) and is supplied per call to addNumberToMessagingService, not
+    // held on this client.
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
-    const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
 
-    if (!accountSid || !authToken || !messagingServiceSid) {
+    if (!accountSid || !authToken) {
       throw new Error(
-        'TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_MESSAGING_SERVICE_SID must all be set to use TwilioSmsClient',
+        'TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must both be set to use TwilioSmsClient',
       );
     }
 
     this.client = twilio(accountSid, authToken);
-    this.messagingServiceSid = messagingServiceSid;
   }
 
   async searchAvailableNumbers(areaCode: string): Promise<AvailableNumber[]> {
@@ -58,9 +59,12 @@ export class TwilioSmsClient implements SmsClient {
     return { phoneNumber: purchased.phoneNumber, twilioSid: purchased.sid };
   }
 
-  async addNumberToMessagingService(numberId: string): Promise<void> {
+  async addNumberToMessagingService(
+    numberId: string,
+    messagingServiceSid: string,
+  ): Promise<void> {
     await this.client.messaging.v1
-      .services(this.messagingServiceSid)
+      .services(messagingServiceSid)
       .phoneNumbers.create({ phoneNumberSid: numberId });
   }
 

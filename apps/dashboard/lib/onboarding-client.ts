@@ -183,10 +183,14 @@ export function searchNumbers(
 export function provisionNumber(
   tenantId: string,
   phoneNumber: string,
+  // The client's own Twilio Messaging Service SID (ISV model). Required by the
+  // backend before a number is purchased -- the number is registered into this
+  // service.
+  messagingServiceSid: string,
 ): Promise<ProvisionedNumber> {
   return request(`/tenants/${tenantId}/number`, {
     method: "POST",
-    body: { phoneNumber },
+    body: { phoneNumber, messagingServiceSid },
   });
 }
 

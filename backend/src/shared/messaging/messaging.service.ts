@@ -13,6 +13,11 @@ export interface TenantPhoneNumberRow {
   is_default: boolean;
   label: string | null;
   status: 'active' | 'released';
+  // The tenant's own Messaging Service this number was registered into
+  // (ISV model). Nullable for rows that predate per-tenant messaging services.
+  messaging_service_sid: string | null;
+  // Which messaging provider owns this number ('twilio' today).
+  provider: string;
   created_at: string;
 }
 
@@ -22,6 +27,12 @@ export interface ProvisionNumberOptions {
   // The specific number the admin selected from a search. Omitted for the
   // pre-selection default path, where the provider buys the first available.
   phoneNumber?: string;
+  // The tenant's own Messaging Service SID (ISV model: each client sends
+  // through their own registered Brand/Campaign/Messaging Service). Required
+  // whenever a purchase actually happens -- see provisionNumberForTenant. The
+  // early-return path (tenant already has a number) never reaches a purchase,
+  // so it does not need one.
+  messagingServiceSid?: string;
 }
 
 export interface SendSmsOptions {
@@ -76,13 +87,28 @@ export class MessagingService implements OnModuleDestroy {
     );
 
     // Already has a number and the caller isn't explicitly asking for a new
-    // default -- return what's there instead of purchasing another one.
+    // default -- return what's there instead of purchasing another one. No
+    // purchase happens on this path, so no messaging service SID is required.
     if (existing.rows.length > 0 && options?.makeDefault !== true) {
       return existing.rows.find((row) => row.is_default) ?? existing.rows[0];
     }
 
+    // Past the early-return: a purchase WILL happen, so the tenant's own
+    // Messaging Service SID is mandatory (ISV model -- the number has to be
+    // registered into the client's service, and we won't spend money buying a
+    // number we can't then register). Guard before any provider call.
+    const messagingServiceSid = options?.messagingServiceSid?.trim();
+    if (!messagingServiceSid) {
+      throw new Error(
+        'A messagingServiceSid is required to provision a number -- each tenant sends through their own registered Messaging Service',
+      );
+    }
+
     const purchased = await this.client.purchaseNumber(options?.phoneNumber);
-    await this.client.addNumberToMessagingService(purchased.twilioSid);
+    await this.client.addNumberToMessagingService(
+      purchased.twilioSid,
+      messagingServiceSid,
+    );
 
     const makeDefault =
       options?.makeDefault === true || existing.rows.length === 0;
@@ -95,14 +121,15 @@ export class MessagingService implements OnModuleDestroy {
     }
 
     const inserted = await this.pool.query<TenantPhoneNumberRow>(
-      `insert into shared_messaging.tenant_phone_numbers (tenant_id, phone_number, twilio_sid, is_default, label)
-       values ($1, $2, $3, $4, $5) returning *`,
+      `insert into shared_messaging.tenant_phone_numbers (tenant_id, phone_number, twilio_sid, is_default, label, messaging_service_sid)
+       values ($1, $2, $3, $4, $5, $6) returning *`,
       [
         tenantId,
         purchased.phoneNumber,
         purchased.twilioSid,
         makeDefault,
         options?.label ?? null,
+        messagingServiceSid,
       ],
     );
 

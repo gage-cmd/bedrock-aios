@@ -33,9 +33,12 @@ export class StubSmsClient implements SmsClient {
     return Promise.resolve({ phoneNumber: number, twilioSid });
   }
 
-  addNumberToMessagingService(numberId: string): Promise<void> {
+  addNumberToMessagingService(
+    numberId: string,
+    messagingServiceSid: string,
+  ): Promise<void> {
     console.log(
-      `[stub-sms] would have added number ${numberId} to the messaging service`,
+      `[stub-sms] would have added number ${numberId} to messaging service ${messagingServiceSid}`,
     );
     return Promise.resolve();
   }

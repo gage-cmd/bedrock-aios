@@ -11,6 +11,11 @@ describe('MessagingService (against StubSmsClient)', () => {
   const tenantBId = randomUUID();
   const tenantWithNoNumberId = randomUUID();
 
+  // Stand-in for a tenant's own Twilio Messaging Service SID (ISV model). The
+  // StubSmsClient doesn't validate it; it just has to be present so a purchase
+  // is allowed to proceed.
+  const messagingServiceSid = 'MG00000000000000000000000000000001';
+
   beforeAll(async () => {
     setupClient = new Client({
       host: process.env.SUPABASE_DB_HOST,
@@ -58,12 +63,31 @@ describe('MessagingService (against StubSmsClient)', () => {
     let firstNumber: TenantPhoneNumberRow;
 
     it('purchases and stores a new default number for a tenant with none', async () => {
-      firstNumber = await service.provisionNumberForTenant(tenantAId);
+      firstNumber = await service.provisionNumberForTenant(tenantAId, {
+        messagingServiceSid,
+      });
 
       expect(firstNumber.tenant_id).toBe(tenantAId);
       expect(firstNumber.is_default).toBe(true);
       expect(firstNumber.phone_number).toMatch(/^\+1555\d{7}$/);
       expect(firstNumber.twilio_sid).toMatch(/^PN[0-9a-f]{32}$/);
+      // The tenant's messaging service is stored on the number, and the
+      // provider column defaults to twilio.
+      expect(firstNumber.messaging_service_sid).toBe(messagingServiceSid);
+      expect(firstNumber.provider).toBe('twilio');
+    });
+
+    it('refuses to purchase a number when no messagingServiceSid is given', async () => {
+      await expect(
+        service.provisionNumberForTenant(tenantWithNoNumberId),
+      ).rejects.toThrow('messagingServiceSid is required');
+
+      // Nothing was stored -- the guard fires before any purchase or insert.
+      const { rows } = await setupClient.query(
+        'select 1 from shared_messaging.tenant_phone_numbers where tenant_id = $1',
+        [tenantWithNoNumberId],
+      );
+      expect(rows).toHaveLength(0);
     });
 
     it("does not double-purchase when the tenant already has a number and makeDefault isn't explicitly requested", async () => {
@@ -82,6 +106,7 @@ describe('MessagingService (against StubSmsClient)', () => {
       const secondNumber = await service.provisionNumberForTenant(tenantAId, {
         makeDefault: true,
         label: 'Second location',
+        messagingServiceSid,
       });
 
       expect(secondNumber.id).not.toBe(firstNumber.id);
@@ -98,7 +123,9 @@ describe('MessagingService (against StubSmsClient)', () => {
 
   describe('sendSms', () => {
     it("sends via the tenant's default number when no numberId is given", async () => {
-      const defaultNumber = await service.provisionNumberForTenant(tenantBId);
+      const defaultNumber = await service.provisionNumberForTenant(tenantBId, {
+        messagingServiceSid,
+      });
 
       const result = await service.sendSms(
         tenantBId,

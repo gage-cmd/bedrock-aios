@@ -134,19 +134,30 @@ export class OnboardingController {
 
   // STEP 5 (purchase) -- buy the selected number and make it the default. The
   // console always selects a number from the search first, so phoneNumber is
-  // required here; this is the irreversible, deliberate purchase.
+  // required here; this is the irreversible, deliberate purchase. The client's
+  // own Messaging Service SID is required alongside it (ISV model) and gated
+  // the same way -- no purchase without the service to register the number in.
   @Post('tenants/:tenantId/number')
   provisionNumber(
     @Param('tenantId') tenantId: string,
-    @Body() body: { phoneNumber?: string },
+    @Body() body: { phoneNumber?: string; messagingServiceSid?: string },
   ) {
     if (!body.phoneNumber) {
       throw new BadRequestException(
         'phoneNumber is required -- search and select a local number first',
       );
     }
+    if (!body.messagingServiceSid) {
+      throw new BadRequestException(
+        "messagingServiceSid is required -- enter the client's Messaging Service SID",
+      );
+    }
     return this.wrap(() =>
-      this.onboarding.provisionNumber(tenantId, body.phoneNumber),
+      this.onboarding.provisionNumber(
+        tenantId,
+        body.phoneNumber,
+        body.messagingServiceSid,
+      ),
     );
   }
 

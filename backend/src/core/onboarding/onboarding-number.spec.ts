@@ -35,6 +35,8 @@ describe('onboarding area-code search + select-before-purchase', () => {
 
   let tenantId: string;
   const suffix = randomUUID().slice(0, 8);
+  // Stand-in for the client's own Twilio Messaging Service SID (ISV model).
+  const messagingServiceSid = 'MG00000000000000000000000000000001';
 
   beforeAll(async () => {
     client = new Client({
@@ -99,16 +101,35 @@ describe('onboarding area-code search + select-before-purchase', () => {
 
   it('refuses a malformed selection', async () => {
     await expect(
-      onboarding.provisionNumber(tenantId, '415-555-1234'),
+      onboarding.provisionNumber(tenantId, '415-555-1234', messagingServiceSid),
     ).rejects.toThrow('E.164 US format');
+  });
+
+  it('refuses to purchase without a messaging service SID', async () => {
+    const [choice] = await onboarding.searchNumbers('415');
+    await expect(
+      onboarding.provisionNumber(tenantId, choice.phoneNumber),
+    ).rejects.toThrow('Messaging Service SID is required');
+  });
+
+  it('refuses a malformed messaging service SID', async () => {
+    const [choice] = await onboarding.searchNumbers('415');
+    await expect(
+      onboarding.provisionNumber(tenantId, choice.phoneNumber, 'not-a-sid'),
+    ).rejects.toThrow('must be a Twilio Messaging Service SID');
   });
 
   it('purchases exactly the selected number as the tenant default', async () => {
     const [choice] = await onboarding.searchNumbers('415');
 
-    const row = await onboarding.provisionNumber(tenantId, choice.phoneNumber);
+    const row = await onboarding.provisionNumber(
+      tenantId,
+      choice.phoneNumber,
+      messagingServiceSid,
+    );
     expect(row.phone_number).toBe(choice.phoneNumber);
     expect(row.is_default).toBe(true);
+    expect(row.messaging_service_sid).toBe(messagingServiceSid);
 
     // And it is the number durably stored as the tenant's active default.
     const stored = await client.query<{ phone_number: string }>(

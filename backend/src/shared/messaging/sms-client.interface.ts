@@ -30,7 +30,14 @@ export interface SmsClient {
   // Purchases phoneNumber if given (the one the admin selected); otherwise
   // buys the first available number (the pre-selection default path).
   purchaseNumber(phoneNumber?: string): Promise<PurchasedNumber>;
-  // numberId is the Twilio phone number SID returned by purchaseNumber().
-  addNumberToMessagingService(numberId: string): Promise<void>;
+  // Registers a purchased number into a Messaging Service. numberId is the
+  // Twilio phone number SID from purchaseNumber(); messagingServiceSid is the
+  // tenant's OWN Messaging Service (ISV model -- each client sends through
+  // their own registered Brand/Campaign/Messaging Service, so the SID is passed
+  // per call, never held as an account-wide default on the client).
+  addNumberToMessagingService(
+    numberId: string,
+    messagingServiceSid: string,
+  ): Promise<void>;
   sendMessage(params: SendMessageParams): Promise<SendMessageResult>;
 }

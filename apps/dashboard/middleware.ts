@@ -1,17 +1,15 @@
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // Explicit public-route allow-list.
 //
 // Routes matched here are intentionally reachable WITHOUT authentication.
-// Everything else in the app is gated -- today that gating is enforced
-// client-side in app/(dashboard)/layout.tsx, because the app uses Supabase's
-// localStorage-based sessions, which a server middleware cannot read. So this
-// middleware's job is NOT to authenticate; it is to keep the set of
-// deliberately-public routes explicit and auditable, rather than letting a
-// route be public merely because it happens to live outside the (dashboard)
-// route group. When server-side (cookie) sessions are added later, this is the
-// single place to deny everything that is not on this allow-list.
+// Everything else is denied by default: no session on a gated route
+// redirects to /login at the edge, so the first paint of a gated page is
+// real content, never a blank client-side auth check. Sessions live in
+// cookies (createBrowserClient in lib/supabase/client.ts), which is what
+// makes them readable here.
 //
 // The public review funnel (/review/[token], Step 6) is the one page in the
 // entire app that must NEVER require a login: a business's customers open it
@@ -29,16 +27,55 @@ function isPublicRoute(pathname: string): boolean {
   return PUBLIC_ROUTE_PATTERNS.some((pattern) => pattern.test(pathname));
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const access = isPublicRoute(pathname) ? "public" : "gated";
 
-  const response = NextResponse.next();
-  // Surface the classification so the public/gated boundary is explicit
-  // end-to-end (and greppable in logs), without changing auth behavior yet.
-  response.headers.set(
-    "x-bedrock-route-access",
-    isPublicRoute(pathname) ? "public" : "gated",
+  let response = NextResponse.next({ request });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          // Standard @supabase/ssr plumbing: mirror refreshed auth cookies
+          // onto both the forwarded request and the outgoing response.
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value),
+          );
+          response = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options),
+          );
+        },
+      },
+    },
   );
+
+  // Also refreshes an expiring session as a side effect -- do not remove
+  // even if the redirect below ever changes.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user && access === "gated") {
+    const loginUrl = new URL("/login", request.url);
+    const redirect = NextResponse.redirect(loginUrl);
+    // Carry any refreshed cookies (e.g. a cleared stale session) along.
+    response.cookies.getAll().forEach((cookie) => {
+      redirect.cookies.set(cookie);
+    });
+    redirect.headers.set("x-bedrock-route-access", access);
+    return redirect;
+  }
+
+  // Surface the classification so the public/gated boundary stays explicit
+  // end-to-end (and greppable in logs).
+  response.headers.set("x-bedrock-route-access", access);
   return response;
 }
 

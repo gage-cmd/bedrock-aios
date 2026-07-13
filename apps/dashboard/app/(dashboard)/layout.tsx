@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
@@ -18,9 +18,11 @@ const NAV_LINKS = [
   { href: "/client-settings", label: "Client Settings" },
 ];
 
-// Guards every route in this group: redirects to /login if there's no
-// active Supabase session, and again if the session disappears later
-// (e.g. sign-out in another tab).
+// Authentication for this route group is enforced server-side: middleware.ts
+// redirects sessionless requests to /login before anything renders, so the
+// first paint here is always real content (no client-side check, no blank
+// flash). The listener below only covers the session DISAPPEARING while the
+// app is open -- sign-out in another tab, or expiry.
 export default function DashboardLayout({
   children,
 }: {
@@ -28,61 +30,20 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [checked, setChecked] = useState(false);
-  const [authError, setAuthError] = useState(false);
 
   useEffect(() => {
-    let active = true;
-
-    supabase.auth
-      .getSession()
-      .then(({ data: { session } }) => {
-        if (!active) return;
-        if (!session) {
-          router.replace("/login");
-          return;
-        }
-        setChecked(true);
-      })
-      .catch(() => {
-        if (active) setAuthError(true);
-      });
-
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (!session) {
+      (event, session) => {
+        if (event !== "INITIAL_SESSION" && !session) {
           router.replace("/login");
         }
       },
     );
 
     return () => {
-      active = false;
       listener.subscription.unsubscribe();
     };
   }, [router]);
-
-  if (authError) {
-    return (
-      <div className="flex flex-1 items-center justify-center p-8">
-        <div className="text-center">
-          <p className="text-sm text-[var(--color-status-attention)]">
-            We couldn&apos;t load your account. Please retry.
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-3 rounded-full bg-[var(--color-accent-primary)] px-5 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!checked) {
-    return null;
-  }
 
   return (
     <div className="flex flex-1">

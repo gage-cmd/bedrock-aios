@@ -47,7 +47,7 @@ export default function DashboardLayout({
 
   return (
     <div className="flex flex-1">
-      <nav className="flex w-60 flex-col gap-1 bg-[var(--color-ink)] p-5">
+      <nav className="flex w-60 flex-col gap-1 bg-[var(--color-surface-ink)] p-5">
         <div className="mb-6 px-3">
           <p className="font-[family-name:var(--font-display)] text-lg font-medium text-white">
             Bedrock AI

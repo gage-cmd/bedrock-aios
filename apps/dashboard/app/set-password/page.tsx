@@ -7,16 +7,19 @@ import { supabase } from "@/lib/supabase/client";
 const inputClasses =
   "rounded-md border border-[var(--color-border)] bg-[var(--color-surface-card)] px-3 py-2 text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-primary)]";
 
-// Landing page for a Supabase invite link (Onboarding Console Step 6). The
-// invite email's redirect_to points here with an access token in the URL;
-// supabase-js picks it up on load (detectSessionInUrl) and establishes a
-// session before this component ever checks for one. There is no separate
-// token to read or verify here -- possession of a valid session IS the
-// authorization, exactly like the review funnel's token IS its authorization.
+// Landing page for a Supabase invite link (Onboarding Console Step 6) and for
+// password-reset links from /forgot-password. Either email's redirect_to
+// points here with an access token in the URL; supabase-js picks it up on load
+// (detectSessionInUrl) and establishes a session before this component ever
+// checks for one. There is no separate token to read or verify here --
+// possession of a valid session IS the authorization, exactly like the review
+// funnel's token IS its authorization. The two flows differ only in copy:
+// supabase-js announces a reset link with the PASSWORD_RECOVERY auth event.
 export default function SetPasswordPage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [hasSession, setHasSession] = useState(false);
+  const [isRecovery, setIsRecovery] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -32,8 +35,9 @@ export default function SetPasswordPage() {
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         if (!active) return;
+        if (event === "PASSWORD_RECOVERY") setIsRecovery(true);
         setHasSession(!!session);
         setReady(true);
       },
@@ -109,7 +113,7 @@ export default function SetPasswordPage() {
 
         {!ready ? (
           <div className="w-full max-w-sm rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-card)] p-8 text-center text-sm text-[var(--color-text-secondary)]">
-            Checking your invite link...
+            Checking your link...
           </div>
         ) : !hasSession ? (
           <div className="w-full max-w-sm rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-card)] p-8 text-center">
@@ -117,8 +121,8 @@ export default function SetPasswordPage() {
               Link no longer valid
             </h1>
             <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
-              This invite link has expired or was already used. Ask your
-              Bedrock AI contact to send a new one.
+              This link has expired or was already used. Request a new one from
+              the sign-in page, or ask your Bedrock AI contact.
             </p>
           </div>
         ) : (
@@ -128,10 +132,12 @@ export default function SetPasswordPage() {
           >
             <div>
               <h1 className="font-[family-name:var(--font-display)] text-2xl font-medium text-[var(--color-ink)]">
-                Set your password
+                {isRecovery ? "Choose a new password" : "Set your password"}
               </h1>
               <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                Choose a password to activate your account.
+                {isRecovery
+                  ? "Pick a new password to get back into your dashboard."
+                  : "Choose a password to activate your account."}
               </p>
             </div>
 
@@ -170,7 +176,7 @@ export default function SetPasswordPage() {
               disabled={saving}
               className="mt-2 rounded-full bg-[var(--color-accent-primary)] px-5 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              {saving ? "Saving..." : "Activate account"}
+              {saving ? "Saving..." : isRecovery ? "Save password" : "Activate account"}
             </button>
           </form>
         )}

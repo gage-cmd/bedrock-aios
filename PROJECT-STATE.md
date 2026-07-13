@@ -25,7 +25,7 @@ Build specs belong in `specs/` as files, referenced by name ("build Phase 6 per 
 
 ## Known open items
 
-- **Railway backend is DOWN (502 "Application failed to respond") as of Jul 12.** No Railway CLI/token on this machine; needs the Railway dashboard to read deploy logs/env. Two boot-crash candidates fixed on this branch (pg was a devDependency; start:prod pointed at dist/main instead of dist/src/main) — redeploy from main after merge and re-check.
+- Railway backend outage RESOLVED Jul 12: after PR #6 merged, Railway auto-deployed from main and the two boot fixes (pg devDependency, dist/src/main path) took. Verified live: HTTP 200 root, plus a full Command Center round-trip as the demo tenant (correct grounded answer, HTTP 201).
 - Twilio has never been connected: TWILIO_* values are empty locally, all tenant numbers are fake 555 stubs from the stub client, SMS_PROVIDER=stub. Needs real credentials before any live SMS.
 - Password reset flow is code-complete but the live email leg is unverified (needs a real send + Supabase Auth redirect-URL allow-list check for the deployed /set-password URL).
 - Monorepo-wide 3-stage code quality audit: started Jul 9 (session 6956e80e), abandoned 6 minutes into Stage 1. Not resumed.

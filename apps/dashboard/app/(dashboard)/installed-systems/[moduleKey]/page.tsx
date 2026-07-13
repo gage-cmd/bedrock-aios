@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { listEnabledModules, type EnabledModule } from "@/lib/module-registry-client";
+import { useEnabledModules } from "@/lib/queries";
 import { getModuleTabs } from "@/lib/module-detail-tabs";
 
 export default function ModuleDetailPage() {
@@ -12,32 +11,9 @@ export default function ModuleDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [module, setModule] = useState<EnabledModule | null>(null);
-  const [notFound, setNotFound] = useState(false);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-
-    async function load() {
-      const modules = await listEnabledModules();
-      if (!active) return;
-
-      const match = modules.find((m) => m.moduleKey === moduleKey);
-      if (!match) {
-        setNotFound(true);
-        return;
-      }
-      setModule(match);
-    }
-
-    load().catch(() => {
-      if (active) setError(true);
-    });
-    return () => {
-      active = false;
-    };
-  }, [moduleKey]);
+  const { data: modules, isError: error } = useEnabledModules();
+  const installed = modules?.find((m) => m.moduleKey === moduleKey) ?? null;
+  const notFound = modules !== undefined && !installed;
 
   const tabs = getModuleTabs(moduleKey);
   const activeKey = searchParams.get("tab") ?? tabs[0]?.key;
@@ -89,11 +65,11 @@ export default function ModuleDetailPage() {
       </Link>
 
       <h1 className="mt-2 font-[family-name:var(--font-display)] text-3xl font-medium text-[var(--color-ink)]">
-        {module?.name ?? "Loading..."}
+        {installed?.name ?? "Loading..."}
       </h1>
-      {module?.description && (
+      {installed?.description && (
         <p className="mt-1 max-w-2xl text-sm text-[var(--color-text-secondary)]">
-          {module.description}
+          {installed.description}
         </p>
       )}
 

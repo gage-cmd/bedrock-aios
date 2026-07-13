@@ -1,48 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  getModuleStatus,
-  listEnabledModules,
-  type EnabledModule,
-  type ModuleStatus,
-} from "@/lib/module-registry-client";
-
-interface ModuleCardData extends EnabledModule {
-  status: ModuleStatus | null;
-}
+import { useEnabledModules, useModuleStatuses } from "@/lib/queries";
 
 export default function InstalledSystemsPage() {
-  const [modules, setModules] = useState<ModuleCardData[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-
-    async function load() {
-      const enabled = await listEnabledModules();
-      if (!active) return;
-
-      if (enabled.length === 0) {
-        setModules([]);
-        return;
-      }
-
-      const withStatus = await Promise.all(
-        enabled.map(async (m) => ({ ...m, status: await getModuleStatus(m.moduleKey) })),
-      );
-      if (active) setModules(withStatus);
-    }
-
-    load().catch(() => {
-      if (active) setError("Could not load installed systems.");
-    });
-
-    return () => {
-      active = false;
-    };
-  }, []);
+  const { data: modules, isError, isPending } = useEnabledModules();
+  const statuses = useModuleStatuses((modules ?? []).map((m) => m.moduleKey));
 
   return (
     <div className="flex-1 p-8">
@@ -53,11 +16,13 @@ export default function InstalledSystemsPage() {
         Everything currently running for your business.
       </p>
 
-      {error && (
-        <p className="mt-4 text-sm text-[var(--color-status-attention)]">{error}</p>
+      {isError && (
+        <p className="mt-4 text-sm text-[var(--color-status-attention)]">
+          Could not load installed systems.
+        </p>
       )}
 
-      {!error && modules === null && (
+      {!isError && isPending && (
         <p className="mt-4 text-[var(--color-text-secondary)]">Loading...</p>
       )}
 
@@ -69,9 +34,10 @@ export default function InstalledSystemsPage() {
 
       {modules && modules.length > 0 && (
         <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {modules.map((m) => {
-            const good = m.status?.status === "connected";
-            const attention = m.status?.status === "needs attention";
+          {modules.map((m, i) => {
+            const status = statuses[i]?.data ?? null;
+            const good = status?.status === "connected";
+            const attention = status?.status === "needs attention";
             return (
               <Link
                 key={m.moduleKey}
@@ -95,9 +61,9 @@ export default function InstalledSystemsPage() {
                     {m.description}
                   </p>
                 )}
-                {attention && m.status && "reason" in m.status && (
+                {attention && status && "reason" in status && (
                   <p className="mt-3 text-xs text-[var(--color-status-attention)]">
-                    {m.status.reason}
+                    {status.reason}
                   </p>
                 )}
               </Link>

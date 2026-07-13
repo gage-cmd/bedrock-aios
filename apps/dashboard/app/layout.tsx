@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Newsreader, Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+import { QueryProvider } from "@/lib/query-provider";
 
 const newsreader = Newsreader({
   variable: "--font-newsreader",
@@ -34,7 +35,9 @@ export default function RootLayout({
       lang="en"
       className={`${newsreader.variable} ${inter.variable} ${plexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <QueryProvider>{children}</QueryProvider>
+      </body>
     </html>
   );
 }

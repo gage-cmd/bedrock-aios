@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase/client";
 
 interface NotificationRow {
@@ -12,35 +13,24 @@ interface NotificationRow {
 }
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<NotificationRow[] | null>(
-    null,
-  );
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [actionError, setActionError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let active = true;
-
-    async function load() {
+  const { data, isError } = useQuery<NotificationRow[]>({
+    queryKey: ["notifications"],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("notifications")
         .select("*")
         .order("created_at", { ascending: false });
-
-      if (!active) return;
-      if (error) {
-        setError("We couldn't load your notifications. Please refresh to try again.");
-        return;
-      }
-      setNotifications((data as NotificationRow[]) ?? []);
-    }
-
-    void load();
-
-    return () => {
-      active = false;
-    };
-  }, []);
+      if (error) throw new Error(error.message);
+      return (data as NotificationRow[]) ?? [];
+    },
+  });
+  const notifications = data ?? null;
+  const error = isError
+    ? "We couldn't load your notifications. Please refresh to try again."
+    : null;
 
   async function markAsRead(id: string) {
     setActionError(null);
@@ -52,9 +42,8 @@ export default function NotificationsPage() {
       setActionError("We couldn't update that notification. Please try again.");
       return;
     }
-    setNotifications(
-      (prev) =>
-        prev?.map((n) => (n.id === id ? { ...n, read: true } : n)) ?? null,
+    queryClient.setQueryData<NotificationRow[]>(["notifications"], (prev) =>
+      prev?.map((n) => (n.id === id ? { ...n, read: true } : n)),
     );
   }
 

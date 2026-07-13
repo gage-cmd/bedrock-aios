@@ -1,15 +1,11 @@
 "use client";
 
-import { useEffect, useState, type ComponentType } from "react";
-import { apiFetch, isSignedOutError } from "@/lib/api";
+import type { ComponentType } from "react";
+import { isSignedOutError } from "@/lib/api";
+import { useEnabledModules } from "@/lib/queries";
 import { ModuleErrorBoundary } from "@/components/module-widgets/ModuleErrorBoundary";
 import { ReviewGenerationWidget } from "@/components/module-widgets/ReviewGenerationWidget";
 import { MissedCallTextbackWidget } from "@/components/module-widgets/MissedCallTextbackWidget";
-
-interface EnabledModule {
-  moduleKey: string;
-  config: Record<string, unknown>;
-}
 
 // Maps a module_key to the widget component that renders it. The loader
 // knows nothing else about any module -- add an entry here (and import the
@@ -24,33 +20,17 @@ const WIDGET_REGISTRY: Record<
   "missed-call-textback": MissedCallTextbackWidget,
 };
 
-// Fetches the enabled modules for the logged-in tenant and dynamically
-// renders each one's widget, wrapped in its own error boundary so a crash
-// in one module's widget can't take down the rest of the dashboard.
+// Renders each enabled module's widget from the shared module-manifest query,
+// wrapped in its own error boundary so a crash in one module's widget can't
+// take down the rest of the dashboard.
 export function useModuleWidgets() {
-  const [modules, setModules] = useState<EnabledModule[]>([]);
-  const [error, setError] = useState(false);
+  const { data, isError, error: queryError } = useEnabledModules();
 
-  useEffect(() => {
-    let active = true;
+  // Signed out mid-load: the dashboard layout is already redirecting to
+  // /login, so don't flash an error state.
+  const error = isError && !isSignedOutError(queryError);
 
-    async function load() {
-      const modules = await apiFetch<EnabledModule[]>("/module-manifest");
-      if (active) setModules(modules);
-    }
-
-    load().catch((err) => {
-      // Signed out mid-load: the dashboard layout is already redirecting to
-      // /login, so don't flash an error state.
-      if (active && !isSignedOutError(err)) setError(true);
-    });
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const widgets = modules
+  const widgets = (data ?? [])
     .filter((m) => m.moduleKey in WIDGET_REGISTRY)
     .map((m) => {
       const Widget = WIDGET_REGISTRY[m.moduleKey];

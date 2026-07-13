@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import { listReports, type ReportListItem } from "@/lib/executive-oversight-client";
 
 function formatWeek(weekOf: string): string {
@@ -20,28 +20,16 @@ function formatWeek(weekOf: string): string {
 }
 
 export default function BusinessReportsPage() {
-  const [reports, setReports] = useState<ReportListItem[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-
-    async function load() {
-      try {
-        const data = await listReports();
-        if (active) setReports(data);
-      } catch (err) {
-        if (active) {
-          setError(err instanceof Error ? err.message : "Could not load reports.");
-        }
-      }
-    }
-
-    void load();
-    return () => {
-      active = false;
-    };
-  }, []);
+  const { data, error: queryError } = useQuery<ReportListItem[]>({
+    queryKey: ["reports"],
+    queryFn: listReports,
+  });
+  const reports = data ?? null;
+  const error = queryError
+    ? queryError instanceof Error
+      ? queryError.message
+      : "Could not load reports."
+    : null;
 
   return (
     <div className="flex-1 p-8">

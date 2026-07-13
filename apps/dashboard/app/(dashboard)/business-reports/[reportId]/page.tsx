@@ -1,7 +1,8 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import {
   getReport,
   type WeeklyReport,
@@ -81,28 +82,16 @@ export default function BusinessReportDetailPage({
   params: Promise<{ reportId: string }>;
 }) {
   const { reportId } = use(params);
-  const [report, setReport] = useState<WeeklyReport | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-
-    async function load() {
-      try {
-        const data = await getReport(reportId);
-        if (active) setReport(data);
-      } catch (err) {
-        if (active) {
-          setError(err instanceof Error ? err.message : "Could not load report.");
-        }
-      }
-    }
-
-    void load();
-    return () => {
-      active = false;
-    };
-  }, [reportId]);
+  const { data, error: queryError } = useQuery<WeeklyReport>({
+    queryKey: ["report", reportId],
+    queryFn: () => getReport(reportId),
+  });
+  const report = data ?? null;
+  const error = queryError
+    ? queryError instanceof Error
+      ? queryError.message
+      : "Could not load report."
+    : null;
 
   const sections = report?.report_data?.sections;
 

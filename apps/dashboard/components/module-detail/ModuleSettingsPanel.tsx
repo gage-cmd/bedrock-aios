@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCurrentTenant } from "@/lib/use-current-tenant";
 import {
   getModuleSettings,
@@ -72,23 +73,14 @@ function StatusIndicator({ settings }: { settings: ModuleSettings }) {
 
 export function ModuleSettingsPanel({ moduleKey }: { moduleKey: string }) {
   const { tenant, loading } = useCurrentTenant();
-  const [settings, setSettings] = useState<ModuleSettings | null>(null);
-  const [loadFailed, setLoadFailed] = useState(false);
+  const queryClient = useQueryClient();
   const [saved, setSaved] = useState(false);
 
-  useEffect(() => {
-    let active = true;
-    getModuleSettings(moduleKey)
-      .then((next) => {
-        if (active) setSettings(next);
-      })
-      .catch(() => {
-        if (active) setLoadFailed(true);
-      });
-    return () => {
-      active = false;
-    };
-  }, [moduleKey]);
+  const { data, isError: loadFailed } = useQuery<ModuleSettings>({
+    queryKey: ["module-settings", moduleKey],
+    queryFn: () => getModuleSettings(moduleKey),
+  });
+  const settings = data ?? null;
 
   if (loadFailed) {
     return (
@@ -136,8 +128,14 @@ export function ModuleSettingsPanel({ moduleKey }: { moduleKey: string }) {
           setSaved(false);
           await saveModuleConfig(moduleKey, values);
           setSaved(true);
-          // Re-fetch so the status indicator reflects the just-saved config.
-          setSettings(await getModuleSettings(moduleKey));
+          // Re-fetch so the status indicator reflects the just-saved config,
+          // and drop the cached status dots that may have changed with it.
+          await queryClient.invalidateQueries({
+            queryKey: ["module-settings", moduleKey],
+          });
+          await queryClient.invalidateQueries({
+            queryKey: ["module-status", moduleKey],
+          });
         }}
       />
 

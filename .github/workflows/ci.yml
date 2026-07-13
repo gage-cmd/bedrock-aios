@@ -13,4 +13,5 @@ jobs:
           node-version: 22
       - run: pnpm install
       - run: cd backend && pnpm lint
+      - run: cd apps/dashboard && pnpm lint
       - run: ./check-branding.sh

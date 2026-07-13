@@ -104,6 +104,7 @@ export default function CommandCenterPage() {
         <input
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
+          aria-label="Ask a question about your business"
           placeholder="Ask about your reviews, missed calls, or this week's results"
           className="flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-card)] px-4 py-3 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-primary)]"
           disabled={busy}

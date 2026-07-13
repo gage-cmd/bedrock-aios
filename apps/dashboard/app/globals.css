@@ -27,6 +27,7 @@
   --color-text-on-accent: #ffffff;
   --color-status-good: #2e7d5b;
   --color-status-attention: #b8622e;
+  --color-focus-ring: #1e3a5f;
 
   /* Data visualization ramp: gold first (the brand metric color), then
      quiet companions. Use in order; never introduce chart colors ad hoc. */
@@ -86,6 +87,7 @@
     --color-text-on-accent: #ffffff;
     --color-status-good: #4caf87;
     --color-status-attention: #d98a5a;
+    --color-focus-ring: #7d9cc4;
     --color-chart-1: #cfa76e;
     --color-chart-2: #7d9cc4;
     --color-chart-3: #4caf87;
@@ -110,6 +112,7 @@
   --color-text-on-accent: #ffffff;
   --color-status-good: #4caf87;
   --color-status-attention: #d98a5a;
+  --color-focus-ring: #7d9cc4;
   --color-chart-1: #cfa76e;
   --color-chart-2: #7d9cc4;
   --color-chart-3: #4caf87;
@@ -133,6 +136,7 @@
   --color-text-on-accent: var(--color-text-on-accent);
   --color-status-good: var(--color-status-good);
   --color-status-attention: var(--color-status-attention);
+  --color-focus-ring: var(--color-focus-ring);
 
   --font-display: var(--font-newsreader);
   --font-body: var(--font-inter);
@@ -143,6 +147,15 @@ body {
   background: var(--color-surface);
   color: var(--color-ink);
   font-family: var(--font-body);
+}
+
+/* Keyboard focus is always visible, on every interactive element, in both
+   themes. Unlayered on purpose so it outranks Tailwind's layered utilities
+   (e.g. outline-none on inputs) for keyboard focus specifically; mouse
+   focus keeps each component's quieter :focus styling. */
+:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
 }
 
 .font-metric {

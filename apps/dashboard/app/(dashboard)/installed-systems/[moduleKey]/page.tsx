@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEnabledModules } from "@/lib/queries";
 import { getModuleTabs } from "@/lib/module-detail-tabs";
@@ -20,8 +21,24 @@ export default function ModuleDetailPage() {
   const activeKey = searchParams.get("tab") ?? tabs[0]?.key;
   const active = tabs.find((t) => t.key === activeKey) ?? tabs[0];
 
+  const tabRefs = useRef(new Map<string, HTMLButtonElement>());
+
   function selectTab(key: string) {
     router.replace(`/installed-systems/${moduleKey}?tab=${key}`);
+  }
+
+  function onTablistKeyDown(e: React.KeyboardEvent) {
+    const idx = tabs.findIndex((t) => t.key === active?.key);
+    let next = -1;
+    if (e.key === "ArrowRight") next = (idx + 1) % tabs.length;
+    else if (e.key === "ArrowLeft") next = (idx - 1 + tabs.length) % tabs.length;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = tabs.length - 1;
+    if (next === -1) return;
+    e.preventDefault();
+    const key = tabs[next].key;
+    selectTab(key);
+    tabRefs.current.get(key)?.focus();
   }
 
   if (error) {
@@ -78,11 +95,25 @@ export default function ModuleDetailPage() {
         </p>
       )}
 
-      <div className="mt-6 flex gap-1 border-b border-[var(--color-border)]">
+      <div
+        role="tablist"
+        aria-label={`${installed?.name ?? "System"} sections`}
+        className="mt-6 flex gap-1 border-b border-[var(--color-border)]"
+      >
         {tabs.map((t) => (
           <button
             key={t.key}
+            ref={(el) => {
+              if (el) tabRefs.current.set(t.key, el);
+              else tabRefs.current.delete(t.key);
+            }}
+            role="tab"
+            id={`tab-${t.key}`}
+            aria-selected={t.key === active?.key}
+            aria-controls={`tabpanel-${t.key}`}
+            tabIndex={t.key === active?.key ? 0 : -1}
             onClick={() => selectTab(t.key)}
+            onKeyDown={onTablistKeyDown}
             className={
               t.key === active?.key
                 ? "border-b-2 border-[var(--color-accent-primary)] px-3 py-2 text-sm font-medium text-[var(--color-ink)]"
@@ -94,7 +125,14 @@ export default function ModuleDetailPage() {
         ))}
       </div>
 
-      <div className="mt-6">{active?.render()}</div>
+      <div
+        role="tabpanel"
+        id={`tabpanel-${active?.key}`}
+        aria-labelledby={`tab-${active?.key}`}
+        className="mt-6"
+      >
+        {active?.render()}
+      </div>
     </div>
   );
 }

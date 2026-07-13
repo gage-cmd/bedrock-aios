@@ -1,5 +1,5 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { Pool } from 'pg';
+import { getSharedPool, closeSharedPool } from '../../shared/db/pg-pool';
 import type {
   ModuleContract,
   ModuleStatus,
@@ -57,14 +57,7 @@ function renderTemplate(
 export class ReviewGenerationService
   implements ModuleContract, OnModuleDestroy
 {
-  private readonly pool = new Pool({
-    host: process.env.SUPABASE_DB_HOST,
-    port: Number(process.env.SUPABASE_DB_PORT),
-    user: process.env.SUPABASE_DB_USER,
-    password: process.env.SUPABASE_DB_PASSWORD,
-    database: process.env.SUPABASE_DB_NAME,
-    ssl: { rejectUnauthorized: false },
-  });
+  private readonly pool = getSharedPool();
 
   constructor(private readonly messaging: MessagingService) {}
 
@@ -294,6 +287,6 @@ export class ReviewGenerationService
   }
 
   async onModuleDestroy(): Promise<void> {
-    await this.pool.end();
+    await closeSharedPool();
   }
 }

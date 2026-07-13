@@ -3,7 +3,7 @@ import {
   Injectable,
   OnModuleDestroy,
 } from '@nestjs/common';
-import { Pool } from 'pg';
+import { getSharedPool, closeSharedPool } from '../../shared/db/pg-pool';
 
 /**
  * activity_log event vocabulary for the review-generation module
@@ -55,14 +55,7 @@ interface MatchedRequestRow {
  */
 @Injectable()
 export class PublicReviewService implements OnModuleDestroy {
-  private readonly pool = new Pool({
-    host: process.env.SUPABASE_DB_HOST,
-    port: Number(process.env.SUPABASE_DB_PORT),
-    user: process.env.SUPABASE_DB_USER,
-    password: process.env.SUPABASE_DB_PASSWORD,
-    database: process.env.SUPABASE_DB_NAME,
-    ssl: { rejectUnauthorized: false },
-  });
+  private readonly pool = getSharedPool();
 
   // A single generic, information-free "not valid" response. Returned
   // identically whether the token never existed, was already completed, or
@@ -181,6 +174,6 @@ export class PublicReviewService implements OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
-    await this.pool.end();
+    await closeSharedPool();
   }
 }

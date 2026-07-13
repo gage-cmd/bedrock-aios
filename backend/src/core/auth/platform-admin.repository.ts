@@ -1,5 +1,5 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { Pool } from 'pg';
+import { getSharedPool, closeSharedPool } from '../../shared/db/pg-pool';
 
 // The single point that reads the platform_admins table. It connects with the
 // pooler's default role (the same unrestricted connection every service uses),
@@ -9,14 +9,7 @@ import { Pool } from 'pg';
 // database, and so nothing else ever learns how admin membership is stored.
 @Injectable()
 export class PlatformAdminRepository implements OnModuleDestroy {
-  private readonly pool = new Pool({
-    host: process.env.SUPABASE_DB_HOST,
-    port: Number(process.env.SUPABASE_DB_PORT),
-    user: process.env.SUPABASE_DB_USER,
-    password: process.env.SUPABASE_DB_PASSWORD,
-    database: process.env.SUPABASE_DB_NAME,
-    ssl: { rejectUnauthorized: false },
-  });
+  private readonly pool = getSharedPool();
 
   // True iff this Supabase Auth user id has a row in platform_admins. The
   // lookup is keyed ONLY on the user id -- never on a tenant_id -- because an
@@ -30,6 +23,6 @@ export class PlatformAdminRepository implements OnModuleDestroy {
   }
 
   onModuleDestroy(): Promise<void> {
-    return this.pool.end();
+    return closeSharedPool();
   }
 }

@@ -1,5 +1,5 @@
 import { Injectable, Optional, OnModuleDestroy } from '@nestjs/common';
-import { Pool } from 'pg';
+import { getSharedPool, closeSharedPool } from '../../shared/db/pg-pool';
 import { ModuleRegistryService } from '../module-registry/module-registry.service';
 import { AnthropicAiClient } from '../../shared/ai/anthropic-ai-client';
 import {
@@ -66,14 +66,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 // exclusively through tool results the model itself asked for.
 @Injectable()
 export class OrchestratorService implements OnModuleDestroy {
-  private readonly pool = new Pool({
-    host: process.env.SUPABASE_DB_HOST,
-    port: Number(process.env.SUPABASE_DB_PORT),
-    user: process.env.SUPABASE_DB_USER,
-    password: process.env.SUPABASE_DB_PASSWORD,
-    database: process.env.SUPABASE_DB_NAME,
-    ssl: { rejectUnauthorized: false },
-  });
+  private readonly pool = getSharedPool();
 
   private readonly ai: AiClient;
 
@@ -115,6 +108,7 @@ export class OrchestratorService implements OnModuleDestroy {
         system,
         messages,
         tools: tools.map((t) => t.definition),
+        usage: { tenantId, moduleKey: 'orchestrator' },
       });
 
       const textBlocks = response.content.filter(isTextBlock);
@@ -369,6 +363,6 @@ export class OrchestratorService implements OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
-    await this.pool.end();
+    await closeSharedPool();
   }
 }

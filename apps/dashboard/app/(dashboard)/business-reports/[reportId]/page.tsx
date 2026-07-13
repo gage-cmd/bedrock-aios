@@ -1,12 +1,14 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import {
   getReport,
   type WeeklyReport,
   type ReportSections,
 } from "@/lib/executive-oversight-client";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 function formatWeek(weekOf: string): string {
   const start = new Date(`${weekOf}T00:00:00Z`);
@@ -81,28 +83,16 @@ export default function BusinessReportDetailPage({
   params: Promise<{ reportId: string }>;
 }) {
   const { reportId } = use(params);
-  const [report, setReport] = useState<WeeklyReport | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-
-    async function load() {
-      try {
-        const data = await getReport(reportId);
-        if (active) setReport(data);
-      } catch (err) {
-        if (active) {
-          setError(err instanceof Error ? err.message : "Could not load report.");
-        }
-      }
-    }
-
-    void load();
-    return () => {
-      active = false;
-    };
-  }, [reportId]);
+  const { data, error: queryError } = useQuery<WeeklyReport>({
+    queryKey: ["report", reportId],
+    queryFn: () => getReport(reportId),
+  });
+  const report = data ?? null;
+  const error = queryError
+    ? queryError instanceof Error
+      ? queryError.message
+      : "Could not load report."
+    : null;
 
   const sections = report?.report_data?.sections;
 
@@ -120,7 +110,13 @@ export default function BusinessReportDetailPage({
       )}
 
       {report === null && !error && (
-        <p className="mt-4 text-[var(--color-text-secondary)]">Loading...</p>
+        <div className="mt-4 flex max-w-2xl flex-col gap-4">
+          <Skeleton className="h-9 w-80 max-w-full" />
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-24 w-full" />
+        </div>
       )}
 
       {report && (

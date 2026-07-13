@@ -1,7 +1,7 @@
-import { supabase } from "@/lib/supabase/client";
+import { apiFetch, ApiError } from "@/lib/api";
 
 // Typed client for the Onboarding Console's backend (admin/onboarding/*).
-// Same transport pattern as command-center-client: the signed-in session's
+// Same transport as every other client (lib/api.ts): the signed-in session's
 // access token as a bearer. For a platform admin that token carries no
 // tenant_id claim -- AdminGuard on the backend is what authorizes these
 // calls, and it rejects tenant-scoped tokens outright.
@@ -71,57 +71,17 @@ export interface InvitedUser {
   email: string;
 }
 
-// Carries the backend's status and error code so callers can tell apart an
-// expected, actionable failure (a same-name tenant -> 409 'duplicate_name')
-// from a generic one, without string-matching messages.
-export class OnboardingRequestError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-    readonly code?: string,
-  ) {
-    super(message);
-    this.name = "OnboardingRequestError";
-  }
-}
+// ApiError already carries the backend's status and error code, so callers
+// can tell apart an expected, actionable failure (a same-name tenant -> 409
+// 'duplicate_name') from a generic one, without string-matching messages.
+// Kept under the old name for existing instanceof checks.
+export { ApiError as OnboardingRequestError };
 
-async function request<T>(
+function request<T>(
   path: string,
   init?: { method?: string; body?: unknown },
 ): Promise<T> {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
-    throw new Error("Not signed in");
-  }
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_BACKEND_URL}/admin/onboarding${path}`,
-    {
-      method: init?.method ?? "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: init?.body === undefined ? undefined : JSON.stringify(init.body),
-    },
-  );
-
-  if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as {
-      message?: string;
-      code?: string;
-    } | null;
-    throw new OnboardingRequestError(
-      body?.message ?? `Request failed (${res.status})`,
-      res.status,
-      body?.code,
-    );
-  }
-
-  return (await res.json()) as T;
+  return apiFetch<T>(`/admin/onboarding${path}`, init);
 }
 
 export function listOnboardingTenants(): Promise<OnboardingTenantSummary[]> {

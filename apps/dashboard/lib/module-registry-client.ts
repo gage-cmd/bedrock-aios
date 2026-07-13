@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase/client";
+import { apiFetch } from "@/lib/api";
 import type { SettingsSchema } from "@/lib/onboarding-client";
 
 // The tenant's enabled modules, enriched server-side with each module's
@@ -28,94 +28,35 @@ export interface ModuleSettings {
   enabled: boolean;
 }
 
-async function authHeader(): Promise<{ Authorization: string } | null> {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) return null;
-  return { Authorization: `Bearer ${session.access_token}` };
-}
-
 // Throws on failure (no session / non-OK response) rather than returning an
 // empty list, so callers can tell "genuinely no modules" apart from "the
 // request failed" -- the empty return used to render as a misleading
-// "nothing installed" state. getModuleStatus below intentionally keeps
-// degrading to null instead of throwing: it runs once per module inside a
-// Promise.all, and one module's status hiccup should show an unknown dot,
-// not take down the whole list.
-export async function listEnabledModules(): Promise<EnabledModule[]> {
-  const headers = await authHeader();
-  if (!headers) throw new Error("Not signed in");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_BACKEND_URL}/module-manifest`,
-    { headers },
-  );
-  if (!res.ok) throw new Error(`Request failed (${res.status})`);
-
-  return res.json() as Promise<EnabledModule[]>;
-}
-
-export async function getModuleStatus(
-  moduleKey: string,
-): Promise<ModuleStatus | null> {
-  const headers = await authHeader();
-  if (!headers) return null;
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_BACKEND_URL}/modules/${moduleKey}/status`,
-    { headers },
-  );
-  if (!res.ok) return null;
-
-  return res.json() as Promise<ModuleStatus>;
+// "nothing installed" state. Status dots come from the batched
+// GET /module-manifest/status read (useModuleStatuses in lib/queries.ts),
+// which degrades per module server-side instead of per request here.
+export function listEnabledModules(): Promise<EnabledModule[]> {
+  return apiFetch<EnabledModule[]>("/module-manifest");
 }
 
 // One module's settings payload for the tenant Settings tab. Throws on failure
 // (no session / non-OK) so the tab can tell "load failed" apart from an empty
 // config, same contract as listEnabledModules above.
-export async function getModuleSettings(
-  moduleKey: string,
-): Promise<ModuleSettings> {
-  const headers = await authHeader();
-  if (!headers) throw new Error("Not signed in");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_BACKEND_URL}/module-manifest/${moduleKey}/settings`,
-    { headers },
-  );
-  if (!res.ok) throw new Error(`Request failed (${res.status})`);
-
-  return res.json() as Promise<ModuleSettings>;
+export function getModuleSettings(moduleKey: string): Promise<ModuleSettings> {
+  return apiFetch<ModuleSettings>(`/module-manifest/${moduleKey}/settings`);
 }
 
 // Persists one module's config through the owner-guarded, schema-validating
 // backend route -- the ONLY path a tenant writes module_manifest now that
 // direct client writes are revoked at the DB level (migration 0018). On a
 // rejection (non-owner, unknown module, schema-validation failure) the backend
-// returns the reason as the response `message`; surface it so the form shows
-// the specific problem rather than an opaque failure.
+// returns the reason as the response `message`; apiFetch surfaces it so the
+// form shows the specific problem rather than an opaque failure.
 export async function saveModuleConfig(
   moduleKey: string,
   config: Record<string, unknown>,
 ): Promise<void> {
-  const headers = await authHeader();
-  if (!headers) throw new Error("Not signed in");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_BACKEND_URL}/module-manifest/${moduleKey}/config`,
-    {
-      method: "PUT",
-      headers: { ...headers, "Content-Type": "application/json" },
-      body: JSON.stringify({ config }),
-    },
-  );
-
-  if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as {
-      message?: string;
-    } | null;
-    throw new Error(body?.message ?? `Request failed (${res.status})`);
-  }
+  await apiFetch<{ saved: true }>(`/module-manifest/${moduleKey}/config`, {
+    method: "PUT",
+    body: { config },
+  });
 }

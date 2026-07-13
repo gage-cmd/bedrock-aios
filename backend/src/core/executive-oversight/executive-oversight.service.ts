@@ -1,5 +1,5 @@
 import { Injectable, Optional, OnModuleDestroy } from '@nestjs/common';
-import { Pool } from 'pg';
+import { getSharedPool, closeSharedPool } from '../../shared/db/pg-pool';
 import { ModuleRegistryService } from '../module-registry/module-registry.service';
 import { AnthropicAiClient } from '../../shared/ai/anthropic-ai-client';
 import { isTextBlock } from '../../shared/ai/ai-client.interface';
@@ -110,14 +110,7 @@ export interface GenerateReportResult {
 // Entirely internal: no public endpoint, read paths are tenant-JWT-scoped.
 @Injectable()
 export class ExecutiveOversightService implements OnModuleDestroy {
-  private readonly pool = new Pool({
-    host: process.env.SUPABASE_DB_HOST,
-    port: Number(process.env.SUPABASE_DB_PORT),
-    user: process.env.SUPABASE_DB_USER,
-    password: process.env.SUPABASE_DB_PASSWORD,
-    database: process.env.SUPABASE_DB_NAME,
-    ssl: { rejectUnauthorized: false },
-  });
+  private readonly pool = getSharedPool();
 
   private readonly ai: AiClient;
 
@@ -144,7 +137,12 @@ export class ExecutiveOversightService implements OnModuleDestroy {
     const modules = await this.gatherModuleData(tenantId);
 
     try {
-      const sections = await this.writeReport(tenantName, week, modules);
+      const sections = await this.writeReport(
+        tenantId,
+        tenantName,
+        week,
+        modules,
+      );
       const model = process.env.REPORT_MODEL ?? 'claude-sonnet-5';
       const reportData = {
         weekOf: week,
@@ -160,7 +158,7 @@ export class ExecutiveOversightService implements OnModuleDestroy {
         'generated',
         reportData,
       );
-      await this.notifyReportReady(tenantId);
+      await this.notifyReportReady(tenantId, week);
       return { reportId, status: 'generated' };
     } catch (err) {
       // The whole generation failed (AI call or synthesis). Record a 'failed'
@@ -278,6 +276,7 @@ export class ExecutiveOversightService implements OnModuleDestroy {
   }
 
   private async writeReport(
+    tenantId: string,
     tenantName: string,
     week: string,
     modules: ModuleReportData[],
@@ -303,6 +302,7 @@ export class ExecutiveOversightService implements OnModuleDestroy {
         },
       ],
       tools: [],
+      usage: { tenantId, moduleKey: 'executive-oversight' },
     });
 
     const text = response.content
@@ -365,14 +365,29 @@ export class ExecutiveOversightService implements OnModuleDestroy {
 
   // Step 5: a plain, benefit-first notification. Deliberately says nothing
   // about how the report is produced -- no AI, agents, systems, or modules.
-  private async notifyReportReady(tenantId: string): Promise<void> {
+  // One notification per tenant per report week, aligned with the reports
+  // table's one-row-per-(tenant, week) key: regenerating a week's report
+  // (dev runs, manual generate-report.ts) must not stack duplicate
+  // "report ready" notifications. The guard scopes by created_at >= the
+  // week's Monday, which is exact because a week's report is only ever
+  // generated during that week.
+  private async notifyReportReady(
+    tenantId: string,
+    week: string,
+  ): Promise<void> {
     try {
       await this.pool.query(
-        `insert into notifications (tenant_id, title, body) values ($1, $2, $3)`,
+        `insert into notifications (tenant_id, title, body)
+         select $1, $2, $3
+         where not exists (
+           select 1 from notifications
+           where tenant_id = $1 and title = $2 and created_at >= $4::date
+         )`,
         [
           tenantId,
           'Your weekly business report is ready.',
           'A fresh summary of your business this past week is ready to view.',
+          week,
         ],
       );
     } catch (err) {
@@ -437,6 +452,6 @@ export class ExecutiveOversightService implements OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
-    await this.pool.end();
+    await closeSharedPool();
   }
 }

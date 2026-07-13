@@ -51,10 +51,20 @@ export interface AiResponse {
   stop_reason: string | null;
 }
 
+// Attribution for usage_logs: which tenant's work this call is, and which
+// surface made it (e.g. 'orchestrator', 'executive-oversight'). Optional so
+// stubs and any future untenanted call sites stay valid; when present, the
+// real client records tokens and cost per call.
+export interface AiUsageContext {
+  tenantId: string;
+  moduleKey: string;
+}
+
 export interface AiCreateMessageParams {
   system: string;
   messages: AiMessageParam[];
   tools: AiTool[];
+  usage?: AiUsageContext;
 }
 
 export interface AiClient {

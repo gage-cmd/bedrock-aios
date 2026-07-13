@@ -1,7 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase/client";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 interface NotificationRow {
   id: string;
@@ -12,35 +16,24 @@ interface NotificationRow {
 }
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<NotificationRow[] | null>(
-    null,
-  );
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [actionError, setActionError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let active = true;
-
-    async function load() {
+  const { data, isError } = useQuery<NotificationRow[]>({
+    queryKey: ["notifications"],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("notifications")
         .select("*")
         .order("created_at", { ascending: false });
-
-      if (!active) return;
-      if (error) {
-        setError("We couldn't load your notifications. Please refresh to try again.");
-        return;
-      }
-      setNotifications((data as NotificationRow[]) ?? []);
-    }
-
-    void load();
-
-    return () => {
-      active = false;
-    };
-  }, []);
+      if (error) throw new Error(error.message);
+      return (data as NotificationRow[]) ?? [];
+    },
+  });
+  const notifications = data ?? null;
+  const error = isError
+    ? "We couldn't load your notifications. Please refresh to try again."
+    : null;
 
   async function markAsRead(id: string) {
     setActionError(null);
@@ -52,17 +45,14 @@ export default function NotificationsPage() {
       setActionError("We couldn't update that notification. Please try again.");
       return;
     }
-    setNotifications(
-      (prev) =>
-        prev?.map((n) => (n.id === id ? { ...n, read: true } : n)) ?? null,
+    queryClient.setQueryData<NotificationRow[]>(["notifications"], (prev) =>
+      prev?.map((n) => (n.id === id ? { ...n, read: true } : n)),
     );
   }
 
   return (
     <div className="flex-1 p-8">
-      <h1 className="font-[family-name:var(--font-display)] text-3xl font-medium text-[var(--color-ink)]">
-        Notifications
-      </h1>
+      <PageHeader title="Notifications" />
 
       {error && (
         <p className="mt-4 text-sm text-[var(--color-status-attention)]">
@@ -77,14 +67,18 @@ export default function NotificationsPage() {
       )}
 
       {!error && notifications === null && (
-        <p className="mt-4 text-[var(--color-text-secondary)]">
-          Loading...
-        </p>
+        <div className="mt-4 flex flex-col gap-2">
+          <Skeleton className="h-16 w-full rounded-lg" />
+          <Skeleton className="h-16 w-full rounded-lg" />
+        </div>
       )}
 
       {!error && notifications?.length === 0 && (
-        <div className="mt-4 rounded-lg border border-dashed border-[var(--color-border)] p-12 text-center text-[var(--color-text-secondary)]">
-          No notifications.
+        <div className="mt-4">
+          <EmptyState
+            title="You're all caught up."
+            body="Updates about your business -- new reports, feedback that needs a look -- will appear here."
+          />
         </div>
       )}
 

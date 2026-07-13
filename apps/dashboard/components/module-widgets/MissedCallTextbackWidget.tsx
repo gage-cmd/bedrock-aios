@@ -1,73 +1,37 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase/client";
-
-interface Snapshot {
-  metric: string;
-  value: string;
-}
+import { isSignedOutError } from "@/lib/api";
+import { useModuleSnapshot } from "@/lib/queries";
+import { Card } from "@/components/ui/Card";
+import { StatBlock } from "@/components/ui/StatBlock";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 export function MissedCallTextbackWidget() {
-  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-
-    async function load() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session) return;
-
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/modules/missed-call-textback/snapshot`,
-        { headers: { Authorization: `Bearer ${session.access_token}` } },
-      );
-
-      if (!active) return;
-
-      if (!res.ok) {
-        setError(true);
-        return;
-      }
-
-      setSnapshot((await res.json()) as Snapshot);
-    }
-
-    void load();
-
-    return () => {
-      active = false;
-    };
-  }, []);
+  const { data: snapshot, isError, error } = useModuleSnapshot("missed-call-textback");
+  const failed = isError && !isSignedOutError(error);
 
   return (
-    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-card)] p-5">
+    <Card>
       <p className="text-sm font-medium text-[var(--color-ink)]">Missed-Call Text-Back</p>
 
-      {error && (
+      {failed && (
         <p className="mt-2 text-sm text-[var(--color-status-attention)]">
-          Could not load snapshot.
+          Could not load this snapshot. Please refresh to try again.
         </p>
       )}
 
-      {!error && !snapshot && (
-        <p className="mt-2 text-sm text-[var(--color-text-secondary)]">Loading...</p>
+      {!failed && !snapshot && (
+        <div className="mt-3 flex flex-col gap-2">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-7 w-28" />
+        </div>
       )}
 
       {snapshot && (
-        <>
-          <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
-            {snapshot.metric}
-          </p>
-          <p className="font-metric text-2xl font-medium text-[var(--color-accent-gold)]">
-            {snapshot.value}
-          </p>
-        </>
+        <div className="mt-3">
+          <StatBlock label={snapshot.metric} value={snapshot.value} />
+        </div>
       )}
-    </div>
+    </Card>
   );
 }

@@ -155,6 +155,7 @@ export default function ReviewFunnelPage() {
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
               rows={4}
+              aria-label="Your feedback"
               placeholder="What could we have done better?"
               className="mt-4 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-card)] px-3 py-2 text-left text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-primary)]"
             />

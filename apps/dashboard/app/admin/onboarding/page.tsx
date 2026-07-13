@@ -656,6 +656,7 @@ export default function OnboardingConsolePage() {
                   <input
                     value={nameDraft}
                     onChange={(e) => setNameDraft(e.target.value)}
+                    aria-label="Business name"
                     className={inputClasses}
                   />
                   <button

@@ -3,6 +3,8 @@
 import { useRef, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { useCurrentTenant } from "@/lib/use-current-tenant";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 export default function ClientSettingsPage() {
   const { tenant, loading } = useCurrentTenant();
@@ -32,8 +34,13 @@ export default function ClientSettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex-1 p-8 text-[var(--color-text-secondary)]">
-        Loading...
+      <div className="flex-1 p-8">
+        <Skeleton className="h-9 w-64" />
+        <div className="mt-6 flex max-w-sm flex-col gap-4">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-4 w-40" />
+        </div>
       </div>
     );
   }
@@ -42,9 +49,7 @@ export default function ClientSettingsPage() {
 
   return (
     <div className="flex-1 p-8">
-      <h1 className="font-[family-name:var(--font-display)] text-3xl font-medium text-[var(--color-ink)]">
-        Client Settings
-      </h1>
+      <PageHeader title="Client Settings" />
 
       <form onSubmit={handleSave} className="mt-6 flex max-w-sm flex-col gap-4">
         <label className="flex flex-col gap-1 text-sm text-[var(--color-text-secondary)]">

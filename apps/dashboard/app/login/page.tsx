@@ -37,7 +37,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex flex-1">
-      <aside className="hidden w-2/5 max-w-xl flex-col justify-between bg-[var(--color-ink)] p-12 lg:flex">
+      <aside className="hidden w-2/5 max-w-xl flex-col justify-between bg-[var(--color-surface-ink)] p-12 lg:flex">
         <div>
           <p className="font-[family-name:var(--font-display)] text-2xl font-medium text-white">
             Bedrock AI

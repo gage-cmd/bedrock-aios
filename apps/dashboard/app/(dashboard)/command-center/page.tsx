@@ -2,6 +2,7 @@
 
 import { FormEvent, useRef, useState } from "react";
 import { askCommandCenter } from "@/lib/command-center-client";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -56,12 +57,10 @@ export default function CommandCenterPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col p-8">
-      <h1 className="font-[family-name:var(--font-display)] text-3xl font-medium text-[var(--color-ink)]">
-        Command Center
-      </h1>
-      <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-        Ask anything about how your business is performing.
-      </p>
+      <PageHeader
+        title="Command Center"
+        subtitle="Ask anything about how your business is performing."
+      />
 
       <div className="mt-6 flex flex-1 flex-col gap-3 overflow-y-auto">
         {messages.length === 0 && (
@@ -105,6 +104,7 @@ export default function CommandCenterPage() {
         <input
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
+          aria-label="Ask a question about your business"
           placeholder="Ask about your reviews, missed calls, or this week's results"
           className="flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-card)] px-4 py-3 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent-primary)]"
           disabled={busy}

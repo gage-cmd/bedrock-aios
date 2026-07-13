@@ -1,5 +1,5 @@
 import { Injectable, Optional, OnModuleDestroy } from '@nestjs/common';
-import { Pool } from 'pg';
+import { getSharedPool, closeSharedPool } from '../db/pg-pool';
 import { SendMessageResult } from './sms-client.interface';
 import type { AvailableNumber, SmsClient } from './sms-client.interface';
 import { StubSmsClient } from './stub-sms-client';
@@ -52,14 +52,7 @@ function createSmsClient(): SmsClient {
 // touch an SmsClient directly.
 @Injectable()
 export class MessagingService implements OnModuleDestroy {
-  private readonly pool = new Pool({
-    host: process.env.SUPABASE_DB_HOST,
-    port: Number(process.env.SUPABASE_DB_PORT),
-    user: process.env.SUPABASE_DB_USER,
-    password: process.env.SUPABASE_DB_PASSWORD,
-    database: process.env.SUPABASE_DB_NAME,
-    ssl: { rejectUnauthorized: false },
-  });
+  private readonly pool = getSharedPool();
 
   private readonly client: SmsClient;
 
@@ -183,6 +176,6 @@ export class MessagingService implements OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
-    await this.pool.end();
+    await closeSharedPool();
   }
 }

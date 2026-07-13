@@ -37,6 +37,7 @@ Multi-tenant AI Operating System platform for Bedrock AI clients (local service 
 - Jest: `jose` and pg-boss are pure ESM. jose is whitelisted in `transformIgnorePatterns` with a pnpm-aware pattern; pg-boss must stay out of the jest module graph (type-only import + lazy `await import()` behind the `NODE_ENV==='test'` guard). Isolated non-reproducing integration failures under parallel workers are pooler contention — re-run or use `--runInBand` before assuming breakage.
 - Interface-only imports used in constructor params require `import type` (isolatedModules + emitDecoratorMetadata; only `nest build` catches it). Optional constructor deps need `@Optional()` from `@nestjs/common`, or the app crashes at boot with `UnknownDependenciesException`.
 - Preview tools: synthetic `preview_click`/`preview_fill` often fail to drive React state (especially the `/login` form). Go straight to `preview_eval` native-event dispatch, or inject a real session into localStorage from a `curl` password-grant token.
+- Turbopack's dev cache can keep serving a stale compiled globals.css after a large rewrite of that file (new utilities appear, new `:root` token declarations don't) -- even across a dev-server restart. Fix: stop the server, `rm -rf apps/dashboard/.next`, restart.
 - Supabase Auth hook registration and some dashboard settings are manual steps in the Supabase dashboard — say so explicitly rather than pretending a migration covers them.
 
 ## Testing and verification rules

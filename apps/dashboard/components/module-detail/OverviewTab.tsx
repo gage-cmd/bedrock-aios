@@ -1,73 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase/client";
-
-interface Snapshot {
-  metric: string;
-  value: string;
-}
+import { isSignedOutError } from "@/lib/api";
+import { useModuleSnapshot } from "@/lib/queries";
+import { Card } from "@/components/ui/Card";
+import { StatBlock } from "@/components/ui/StatBlock";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 // Generic across every module: hits that module's own /snapshot route by
 // moduleKey, same data the Business Snapshot widgets show. Works for any
 // module without per-module code, since the snapshot shape is part of the
 // module contract.
 export function OverviewTab({ moduleKey }: { moduleKey: string }) {
-  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-
-    async function load() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session) return;
-
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/modules/${moduleKey}/snapshot`,
-        { headers: { Authorization: `Bearer ${session.access_token}` } },
-      );
-
-      if (!active) return;
-
-      if (!res.ok) {
-        setError(true);
-        return;
-      }
-
-      setSnapshot((await res.json()) as Snapshot);
-    }
-
-    void load();
-
-    return () => {
-      active = false;
-    };
-  }, [moduleKey]);
+  const { data: snapshot, isError, error } = useModuleSnapshot(moduleKey);
+  const failed = isError && !isSignedOutError(error);
 
   return (
-    <div className="max-w-sm rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-card)] p-5">
-      {error && (
+    <Card className="max-w-sm">
+      {failed && (
         <p className="text-sm text-[var(--color-status-attention)]">
-          Could not load snapshot.
+          Could not load this snapshot. Please refresh to try again.
         </p>
       )}
 
-      {!error && !snapshot && (
-        <p className="text-sm text-[var(--color-text-secondary)]">Loading...</p>
+      {!failed && !snapshot && (
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-7 w-28" />
+        </div>
       )}
 
-      {snapshot && (
-        <>
-          <p className="text-sm text-[var(--color-text-secondary)]">{snapshot.metric}</p>
-          <p className="font-metric text-2xl font-medium text-[var(--color-accent-gold)]">
-            {snapshot.value}
-          </p>
-        </>
-      )}
-    </div>
+      {snapshot && <StatBlock label={snapshot.metric} value={snapshot.value} />}
+    </Card>
   );
 }

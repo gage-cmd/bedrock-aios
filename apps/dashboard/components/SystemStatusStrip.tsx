@@ -1,54 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import {
-  getModuleStatus,
-  listEnabledModules,
-  type ModuleStatus,
-} from "@/lib/module-registry-client";
-
-interface ModuleStatusEntry {
-  moduleKey: string;
-  label: string;
-  status: ModuleStatus | null;
-}
+import { useEnabledModules, useModuleStatuses } from "@/lib/queries";
+import { StatusDot, type StatusTone } from "@/components/ui/StatusDot";
 
 export function SystemStatusStrip() {
-  const [entries, setEntries] = useState<ModuleStatusEntry[]>([]);
-  const [error, setError] = useState(false);
+  const { data: modules, isError } = useEnabledModules();
+  const statuses = useModuleStatuses();
 
-  useEffect(() => {
-    let active = true;
-
-    async function load() {
-      const modules = await listEnabledModules();
-      if (!active) return;
-      if (modules.length === 0) {
-        setEntries([]);
-        return;
-      }
-
-      const results = await Promise.all(
-        modules.map(async (m) => ({
-          moduleKey: m.moduleKey,
-          label: m.name,
-          status: await getModuleStatus(m.moduleKey),
-        })),
-      );
-
-      if (active) setEntries(results);
-    }
-
-    load().catch(() => {
-      if (active) setError(true);
-    });
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  if (error) {
+  if (isError) {
     return (
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-[var(--color-border)] bg-[var(--color-surface-card)] px-8 py-3">
         <span className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-secondary)]">
@@ -64,31 +23,28 @@ export function SystemStatusStrip() {
     );
   }
 
-  if (entries.length === 0) return null;
+  if (!modules || modules.length === 0) return null;
 
   return (
     <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-[var(--color-border)] bg-[var(--color-surface-card)] px-8 py-3">
       <span className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-secondary)]">
         System Status
       </span>
-      {entries.map((e) => {
-        const good = e.status?.status === "connected";
-        const attention = e.status?.status === "needs attention";
+      {modules.map((m) => {
+        const status = statuses.get(m.moduleKey) ?? null;
+        const tone: StatusTone =
+          status?.status === "connected"
+            ? "good"
+            : status?.status === "needs attention"
+              ? "attention"
+              : "unknown";
         return (
-          <div key={e.moduleKey} className="flex items-center gap-2">
-            <span
-              className={
-                good
-                  ? "status-dot-good h-2 w-2 rounded-full bg-[var(--color-status-good)]"
-                  : attention
-                    ? "h-2 w-2 rounded-full bg-[var(--color-status-attention)]"
-                    : "h-2 w-2 rounded-full bg-[var(--color-ink-muted)]"
-              }
-            />
-            <span className="text-sm text-[var(--color-ink)]">{e.label}</span>
-            {attention && e.status && "reason" in e.status && (
+          <div key={m.moduleKey} className="flex items-center gap-2">
+            <StatusDot tone={tone} />
+            <span className="text-sm text-[var(--color-ink)]">{m.name}</span>
+            {tone === "attention" && status && "reason" in status && (
               <span className="text-xs text-[var(--color-text-secondary)]">
-                &mdash; {e.status.reason}
+                &mdash; {status.reason}
               </span>
             )}
           </div>

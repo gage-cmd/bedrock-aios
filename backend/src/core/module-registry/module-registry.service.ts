@@ -1,7 +1,7 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
-import { Pool } from 'pg';
+import { getSharedPool, closeSharedPool } from '../../shared/db/pg-pool';
 import {
   ModuleContract,
   ModuleStatus,
@@ -90,14 +90,7 @@ interface ModuleManifestRow {
 export class ModuleRegistryService implements OnModuleDestroy {
   private readonly instances = new Map<string, ModuleContract>();
 
-  private readonly pool = new Pool({
-    host: process.env.SUPABASE_DB_HOST,
-    port: Number(process.env.SUPABASE_DB_PORT),
-    user: process.env.SUPABASE_DB_USER,
-    password: process.env.SUPABASE_DB_PASSWORD,
-    database: process.env.SUPABASE_DB_NAME,
-    ssl: { rejectUnauthorized: false },
-  });
+  private readonly pool = getSharedPool();
 
   registerModule(moduleKey: string, instance: ModuleContract): void {
     this.instances.set(moduleKey, instance);
@@ -289,6 +282,6 @@ export class ModuleRegistryService implements OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
-    await this.pool.end();
+    await closeSharedPool();
   }
 }

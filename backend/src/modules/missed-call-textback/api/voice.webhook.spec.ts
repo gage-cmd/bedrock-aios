@@ -200,7 +200,11 @@ describe('Twilio Voice webhooks', () => {
 
   describe('unrecognized "To" number', () => {
     it('declines safely with no error and no side effects', async () => {
-      const unknownNumber = '+15550009999';
+      // 999 is not a real US area code, so no tenant row in the shared live
+      // DB can ever own this number -- the old +1555... value collided with
+      // the demo tenant's seeded number and made this test depend on that
+      // tenant's config.
+      const unknownNumber = '+19995550142';
       const res = await postSigned('/public/voice/incoming', {
         To: unknownNumber,
         From: '+15557771234',

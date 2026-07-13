@@ -21,13 +21,18 @@ Build specs belong in `specs/` as files, referenced by name ("build Phase 6 per 
 | Post-phase — login page redesign to match design system | complete | 94043e0 | Jul 9 |
 | Post-phase — invite-link password-set page, redirect_to wiring for client invites | complete | 1a36e67 | Jul 9 |
 | Post-phase — app-layer cross-tenant IDOR test for weekly reports | complete | 74afc48 | Jul 9 |
+| Production readiness pass — forgot-password flow + dashboard vitest infra, pg runtime-dep fix, scaffold-module dry-run verified, full route audit, Vercel NEXT_PUBLIC_BACKEND_URL scheme fix | complete | (this branch) | Jul 12 |
 
 ## Known open items
 
+- **Railway backend is DOWN (502 "Application failed to respond") as of Jul 12.** No Railway CLI/token on this machine; needs the Railway dashboard to read deploy logs/env. Two boot-crash candidates fixed on this branch (pg was a devDependency; start:prod pointed at dist/main instead of dist/src/main) — redeploy from main after merge and re-check.
+- Twilio has never been connected: TWILIO_* values are empty locally, all tenant numbers are fake 555 stubs from the stub client, SMS_PROVIDER=stub. Needs real credentials before any live SMS.
+- Password reset flow is code-complete but the live email leg is unverified (needs a real send + Supabase Auth redirect-URL allow-list check for the deployed /set-password URL).
 - Monorepo-wide 3-stage code quality audit: started Jul 9 (session 6956e80e), abandoned 6 minutes into Stage 1. Not resumed.
-- "Invalid Date" bug on Business Reports detail page: fix attempted Jul 9 during the design-system session — verify it actually landed before touching that page again.
-- Three Vercel projects existed for the one dashboard as of Jul 9; only one should remain (manual cleanup in the Vercel dashboard).
+- "Invalid Date" bug on Business Reports detail page: verified fixed Jul 12 (detail page renders "Week of July 6 – July 12, 2026" correctly).
+- Vercel projects: cleaned to one dashboard project (bedrock-aios-dashboard) + the separate marketing site (bedrock-website, serves getbedrockai.com). The dashboard is NOT on getbedrockai.com.
 - Supabase Auth custom-claims hook registration is a manual dashboard step — re-register if the project is ever recreated.
+- Demo tenant has 4 duplicate "weekly report ready" notifications from dev-time report runs; one real report row.
 
 ## Frozen predecessors (do not build on these)
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase/client";
+import { apiFetch, isSignedOutError } from "@/lib/api";
 
 interface Snapshot {
   metric: string;
@@ -16,28 +16,15 @@ export function ReviewGenerationWidget() {
     let active = true;
 
     async function load() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session) return;
-
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/modules/review-generation/snapshot`,
-        { headers: { Authorization: `Bearer ${session.access_token}` } },
+      const data = await apiFetch<Snapshot>(
+        "/modules/review-generation/snapshot",
       );
-
-      if (!active) return;
-
-      if (!res.ok) {
-        setError(true);
-        return;
-      }
-
-      setSnapshot((await res.json()) as Snapshot);
+      if (active) setSnapshot(data);
     }
 
-    void load();
+    load().catch((err) => {
+      if (active && !isSignedOutError(err)) setError(true);
+    });
 
     return () => {
       active = false;

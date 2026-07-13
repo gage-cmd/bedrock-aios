@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ComponentType } from "react";
-import { supabase } from "@/lib/supabase/client";
+import { apiFetch, isSignedOutError } from "@/lib/api";
 import { ModuleErrorBoundary } from "@/components/module-widgets/ModuleErrorBoundary";
 import { ReviewGenerationWidget } from "@/components/module-widgets/ReviewGenerationWidget";
 import { MissedCallTextbackWidget } from "@/components/module-widgets/MissedCallTextbackWidget";
@@ -35,28 +35,14 @@ export function useModuleWidgets() {
     let active = true;
 
     async function load() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session) return;
-
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/module-manifest`,
-        { headers: { Authorization: `Bearer ${session.access_token}` } },
-      );
-
-      if (!active) return;
-      if (!res.ok) {
-        setError(true);
-        return;
-      }
-
-      setModules((await res.json()) as EnabledModule[]);
+      const modules = await apiFetch<EnabledModule[]>("/module-manifest");
+      if (active) setModules(modules);
     }
 
-    load().catch(() => {
-      if (active) setError(true);
+    load().catch((err) => {
+      // Signed out mid-load: the dashboard layout is already redirecting to
+      // /login, so don't flash an error state.
+      if (active && !isSignedOutError(err)) setError(true);
     });
 
     return () => {

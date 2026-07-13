@@ -2,6 +2,7 @@
 
 import { FormEvent, useRef, useState } from "react";
 import { askCommandCenter } from "@/lib/command-center-client";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -56,12 +57,10 @@ export default function CommandCenterPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col p-8">
-      <h1 className="font-[family-name:var(--font-display)] text-3xl font-medium text-[var(--color-ink)]">
-        Command Center
-      </h1>
-      <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-        Ask anything about how your business is performing.
-      </p>
+      <PageHeader
+        title="Command Center"
+        subtitle="Ask anything about how your business is performing."
+      />
 
       <div className="mt-6 flex flex-1 flex-col gap-3 overflow-y-auto">
         {messages.length === 0 && (

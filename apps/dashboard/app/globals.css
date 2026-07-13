@@ -151,6 +151,29 @@ body {
   font-feature-settings: "tnum";
 }
 
+/* Loading shimmer for components/ui/Skeleton. Ink-derived so it tracks the
+   theme automatically. */
+.skeleton {
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  animation: skeleton-pulse 1.6s var(--ease-out-soft) infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
 @keyframes status-breathe {
   0%,
   100% {

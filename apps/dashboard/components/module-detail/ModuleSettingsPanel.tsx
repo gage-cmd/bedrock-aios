@@ -9,6 +9,7 @@ import {
   type ModuleSettings,
 } from "@/lib/module-registry-client";
 import { SchemaForm, type SchemaFormTheme } from "@/components/admin/SchemaForm";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 // The generic, schema-driven Settings tab for ANY module. It fetches the
 // module's schema + this tenant's config + live status from the backend
@@ -91,7 +92,15 @@ export function ModuleSettingsPanel({ moduleKey }: { moduleKey: string }) {
   }
 
   if (loading || !settings) {
-    return <p className="text-[var(--color-text-secondary)]">Loading...</p>;
+    return (
+      <div className="flex max-w-sm flex-col gap-4">
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-9 w-24 rounded-full" />
+      </div>
+    );
   }
 
   if (!settings.schema) {

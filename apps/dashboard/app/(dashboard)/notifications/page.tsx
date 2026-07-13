@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase/client";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 interface NotificationRow {
   id: string;
@@ -49,9 +52,7 @@ export default function NotificationsPage() {
 
   return (
     <div className="flex-1 p-8">
-      <h1 className="font-[family-name:var(--font-display)] text-3xl font-medium text-[var(--color-ink)]">
-        Notifications
-      </h1>
+      <PageHeader title="Notifications" />
 
       {error && (
         <p className="mt-4 text-sm text-[var(--color-status-attention)]">
@@ -66,14 +67,18 @@ export default function NotificationsPage() {
       )}
 
       {!error && notifications === null && (
-        <p className="mt-4 text-[var(--color-text-secondary)]">
-          Loading...
-        </p>
+        <div className="mt-4 flex flex-col gap-2">
+          <Skeleton className="h-16 w-full rounded-lg" />
+          <Skeleton className="h-16 w-full rounded-lg" />
+        </div>
       )}
 
       {!error && notifications?.length === 0 && (
-        <div className="mt-4 rounded-lg border border-dashed border-[var(--color-border)] p-12 text-center text-[var(--color-text-secondary)]">
-          No notifications.
+        <div className="mt-4">
+          <EmptyState
+            title="You're all caught up."
+            body="Updates about your business -- new reports, feedback that needs a look -- will appear here."
+          />
         </div>
       )}
 

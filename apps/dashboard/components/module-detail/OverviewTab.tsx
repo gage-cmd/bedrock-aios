@@ -2,6 +2,9 @@
 
 import { isSignedOutError } from "@/lib/api";
 import { useModuleSnapshot } from "@/lib/queries";
+import { Card } from "@/components/ui/Card";
+import { StatBlock } from "@/components/ui/StatBlock";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 // Generic across every module: hits that module's own /snapshot route by
 // moduleKey, same data the Business Snapshot widgets show. Works for any
@@ -12,25 +15,21 @@ export function OverviewTab({ moduleKey }: { moduleKey: string }) {
   const failed = isError && !isSignedOutError(error);
 
   return (
-    <div className="max-w-sm rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-card)] p-5">
+    <Card className="max-w-sm">
       {failed && (
         <p className="text-sm text-[var(--color-status-attention)]">
-          Could not load snapshot.
+          Could not load this snapshot. Please refresh to try again.
         </p>
       )}
 
       {!failed && !snapshot && (
-        <p className="text-sm text-[var(--color-text-secondary)]">Loading...</p>
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-7 w-28" />
+        </div>
       )}
 
-      {snapshot && (
-        <>
-          <p className="text-sm text-[var(--color-text-secondary)]">{snapshot.metric}</p>
-          <p className="font-metric text-2xl font-medium text-[var(--color-accent-gold)]">
-            {snapshot.value}
-          </p>
-        </>
-      )}
-    </div>
+      {snapshot && <StatBlock label={snapshot.metric} value={snapshot.value} />}
+    </Card>
   );
 }

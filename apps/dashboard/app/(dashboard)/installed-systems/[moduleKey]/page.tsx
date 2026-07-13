@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEnabledModules } from "@/lib/queries";
 import { getModuleTabs } from "@/lib/module-detail-tabs";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 export default function ModuleDetailPage() {
   const params = useParams<{ moduleKey: string }>();
@@ -64,9 +65,13 @@ export default function ModuleDetailPage() {
         &larr; Installed Systems
       </Link>
 
-      <h1 className="mt-2 font-[family-name:var(--font-display)] text-3xl font-medium text-[var(--color-ink)]">
-        {installed?.name ?? "Loading..."}
-      </h1>
+      {installed ? (
+        <h1 className="mt-2 font-[family-name:var(--font-display)] text-3xl font-medium text-[var(--color-ink)]">
+          {installed.name}
+        </h1>
+      ) : (
+        <Skeleton className="mt-2 h-9 w-72" />
+      )}
       {installed?.description && (
         <p className="mt-1 max-w-2xl text-sm text-[var(--color-text-secondary)]">
           {installed.description}

@@ -8,6 +8,7 @@ import {
   type WeeklyReport,
   type ReportSections,
 } from "@/lib/executive-oversight-client";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 function formatWeek(weekOf: string): string {
   const start = new Date(`${weekOf}T00:00:00Z`);
@@ -109,7 +110,13 @@ export default function BusinessReportDetailPage({
       )}
 
       {report === null && !error && (
-        <p className="mt-4 text-[var(--color-text-secondary)]">Loading...</p>
+        <div className="mt-4 flex max-w-2xl flex-col gap-4">
+          <Skeleton className="h-9 w-80 max-w-full" />
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-24 w-full" />
+        </div>
       )}
 
       {report && (

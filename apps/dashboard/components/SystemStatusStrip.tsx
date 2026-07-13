@@ -1,6 +1,7 @@
 "use client";
 
 import { useEnabledModules, useModuleStatuses } from "@/lib/queries";
+import { StatusDot, type StatusTone } from "@/components/ui/StatusDot";
 
 export function SystemStatusStrip() {
   const { data: modules, isError } = useEnabledModules();
@@ -31,21 +32,17 @@ export function SystemStatusStrip() {
       </span>
       {modules.map((m) => {
         const status = statuses.get(m.moduleKey) ?? null;
-        const good = status?.status === "connected";
-        const attention = status?.status === "needs attention";
+        const tone: StatusTone =
+          status?.status === "connected"
+            ? "good"
+            : status?.status === "needs attention"
+              ? "attention"
+              : "unknown";
         return (
           <div key={m.moduleKey} className="flex items-center gap-2">
-            <span
-              className={
-                good
-                  ? "status-dot-good h-2 w-2 rounded-full bg-[var(--color-status-good)]"
-                  : attention
-                    ? "h-2 w-2 rounded-full bg-[var(--color-status-attention)]"
-                    : "h-2 w-2 rounded-full bg-[var(--color-ink-muted)]"
-              }
-            />
+            <StatusDot tone={tone} />
             <span className="text-sm text-[var(--color-ink)]">{m.name}</span>
-            {attention && status && "reason" in status && (
+            {tone === "attention" && status && "reason" in status && (
               <span className="text-xs text-[var(--color-text-secondary)]">
                 &mdash; {status.reason}
               </span>

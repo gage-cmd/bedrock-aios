@@ -24,7 +24,7 @@ const WIDGET_REGISTRY: Record<
 // wrapped in its own error boundary so a crash in one module's widget can't
 // take down the rest of the dashboard.
 export function useModuleWidgets() {
-  const { data, isError, error: queryError } = useEnabledModules();
+  const { data, isError, isPending, error: queryError } = useEnabledModules();
 
   // Signed out mid-load: the dashboard layout is already redirecting to
   // /login, so don't flash an error state.
@@ -41,5 +41,5 @@ export function useModuleWidgets() {
       );
     });
 
-  return { widgets, error };
+  return { widgets, error, pending: isPending };
 }

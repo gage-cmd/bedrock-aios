@@ -5,6 +5,7 @@ import { getSharedPool, closeSharedPool } from '../../shared/db/pg-pool';
 import {
   ModuleContract,
   ModuleStatus,
+  SnapshotV2,
   TenantCapability,
 } from './module-contract';
 import {
@@ -41,6 +42,17 @@ export interface ModuleMetadata {
 export interface ModuleStatusEntry {
   moduleKey: string;
   status: ModuleStatus | null;
+}
+
+// One entry per enabled module in the batched snapshot read, same
+// degradation semantics as ModuleStatusEntry: `snapshot: null` means this
+// module could not produce one right now (no live instance, error, or
+// timeout) -- the card renders its unavailable state while the rest of the
+// dashboard stays intact.
+export interface ModuleSnapshotEntry {
+  moduleKey: string;
+  name: string;
+  snapshot: SnapshotV2 | null;
 }
 
 // A hung getStatus in one module must degrade that one entry, never stall
@@ -255,6 +267,38 @@ export class ModuleRegistryService implements OnModuleDestroy {
               reason: 'Could not check just now',
             },
           };
+        }
+      }),
+    );
+  }
+
+  // Every enabled module's SnapshotV2 in one request -- the home page's one
+  // data fetch. Same per-module degradation as getStatusesForTenant: a
+  // broken or missing module yields `snapshot: null`, never a failed batch.
+  async getSnapshotsForTenant(
+    tenantId: string,
+  ): Promise<ModuleSnapshotEntry[]> {
+    const enabled = await this.getEnabledModules(tenantId);
+
+    return Promise.all(
+      enabled.map(async ({ moduleKey }) => {
+        const meta = await this.getModuleMetadata(moduleKey);
+        const name = meta?.name ?? moduleKey;
+        const instance = this.instances.get(moduleKey);
+        if (!instance) return { moduleKey, name, snapshot: null };
+
+        try {
+          const snapshot = await withTimeout(
+            instance.getSnapshot(tenantId),
+            statusTimeoutMs(),
+          );
+          return { moduleKey, name, snapshot };
+        } catch (err) {
+          console.error(
+            `[module-registry] getSnapshot failed for "${moduleKey}", tenant ${tenantId}:`,
+            err instanceof Error ? err.message : err,
+          );
+          return { moduleKey, name, snapshot: null };
         }
       }),
     );

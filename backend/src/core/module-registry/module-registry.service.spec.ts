@@ -187,4 +187,38 @@ describe('ModuleRegistryService', () => {
       expect(statuses).toEqual([]);
     });
   });
+
+  describe('getSnapshotsForTenant', () => {
+    const snapshot = {
+      headline: { label: 'Alpha things this week', value: '3 done' },
+      metrics: [],
+      attention: [],
+      recentEvents: [],
+    };
+
+    it('returns one entry per enabled module; a throwing module and a missing instance both yield null snapshots', async () => {
+      const alpha = service.getModuleInstance('alpha-module')!;
+      const beta = service.getModuleInstance('beta-module')!;
+      (alpha.getSnapshot as jest.Mock).mockResolvedValue(snapshot);
+      (beta.getSnapshot as jest.Mock).mockRejectedValue(new Error('boom'));
+
+      const snapshots =
+        await service.getSnapshotsForTenant(capabilitiesTenantId);
+
+      expect(snapshots).toEqual(
+        expect.arrayContaining([
+          { moduleKey: 'alpha-module', name: 'alpha-module', snapshot },
+          { moduleKey: 'beta-module', name: 'beta-module', snapshot: null },
+          { moduleKey: 'ghost-module', name: 'ghost-module', snapshot: null },
+        ]),
+      );
+      expect(snapshots).toHaveLength(3);
+    });
+
+    it('returns an empty list for a tenant with no enabled modules', async () => {
+      const snapshots = await service.getSnapshotsForTenant(otherTenantId);
+
+      expect(snapshots).toEqual([]);
+    });
+  });
 });

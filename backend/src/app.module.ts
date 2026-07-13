@@ -12,6 +12,7 @@ import { ModuleRegistryModule } from './core/module-registry/module-registry.mod
 import { OnboardingModule } from './core/onboarding/onboarding.module';
 import { OrchestratorModule } from './core/orchestrator/orchestrator.module';
 import { TenantResolverMiddleware } from './core/tenant-resolver/tenant-resolver.middleware';
+import { ValueLedgerApiModule } from './core/value-ledger/value-ledger-api.module';
 import { MissedCallTextbackModule } from './modules/missed-call-textback/missed-call-textback.module';
 import { ReviewGenerationModule } from './modules/review-generation/review-generation.module';
 
@@ -22,6 +23,7 @@ import { ReviewGenerationModule } from './modules/review-generation/review-gener
     ModuleRegistryModule,
     OrchestratorModule,
     ExecutiveOversightModule,
+    ValueLedgerApiModule,
     ReviewGenerationModule,
     MissedCallTextbackModule,
   ],

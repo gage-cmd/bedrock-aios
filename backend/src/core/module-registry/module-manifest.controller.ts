@@ -13,6 +13,7 @@ import {
   EnabledModule,
   ModuleRegistryService,
   ModuleSettings,
+  ModuleSnapshotEntry,
   ModuleStatusEntry,
 } from './module-registry.service';
 
@@ -56,6 +57,17 @@ export class ModuleManifestController {
   @Get('status')
   getStatuses(@Req() req: Request): Promise<ModuleStatusEntry[]> {
     return this.moduleRegistry.getStatusesForTenant(
+      req.tenantContext!.tenantId,
+    );
+  }
+
+  // Every enabled module's full SnapshotV2 in one request -- the home page
+  // and module cards read this instead of one GET per module. Like "status",
+  // registered before the parameterized routes so "snapshots" is never
+  // captured as a moduleKey.
+  @Get('snapshots')
+  getSnapshots(@Req() req: Request): Promise<ModuleSnapshotEntry[]> {
+    return this.moduleRegistry.getSnapshotsForTenant(
       req.tenantContext!.tenantId,
     );
   }

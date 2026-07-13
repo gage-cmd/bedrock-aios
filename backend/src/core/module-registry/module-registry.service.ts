@@ -34,6 +34,35 @@ export interface ModuleMetadata {
   description: string;
 }
 
+// One entry per enabled module in the batched status read. `status: null`
+// means unknown -- the module is in the tenant's manifest but has no live
+// instance in this deployment, same semantics as the per-module route
+// 404-ing (the dashboard shows a neutral dot).
+export interface ModuleStatusEntry {
+  moduleKey: string;
+  status: ModuleStatus | null;
+}
+
+// A hung getStatus in one module must degrade that one entry, never stall
+// the whole batch. Read at call time (not module load) so tests can tighten
+// it per-case -- same pattern as the orchestrator's module timeout.
+function statusTimeoutMs(): number {
+  return Number(process.env.MODULE_STATUS_TIMEOUT_MS ?? 10_000);
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: NodeJS.Timeout;
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        () => reject(new Error(`status check timed out after ${ms}ms`)),
+        ms,
+      );
+    }),
+  ]).finally(() => clearTimeout(timer));
+}
+
 // Where module packages live on disk. Two candidates, first readable file
 // wins: (1) relative to this file -- src/core/module-registry/../../modules
 // under ts-jest, and the compiled tree's modules dir in a build (nest-cli
@@ -199,6 +228,43 @@ export class ModuleRegistryService implements OnModuleDestroy {
       status,
       enabled,
     };
+  }
+
+  // Every enabled module's live getStatus() verdict in one call -- the
+  // batched read behind GET /module-manifest/status, replacing the
+  // one-request-per-module pattern the dashboard status strip used to fire
+  // on every page. One module throwing or hanging degrades to a
+  // needs-attention entry for that module only; the batch itself never
+  // fails.
+  async getStatusesForTenant(tenantId: string): Promise<ModuleStatusEntry[]> {
+    const enabled = await this.getEnabledModules(tenantId);
+
+    return Promise.all(
+      enabled.map(async ({ moduleKey }) => {
+        const instance = this.instances.get(moduleKey);
+        if (!instance) return { moduleKey, status: null };
+
+        try {
+          const status = await withTimeout(
+            instance.getStatus(tenantId),
+            statusTimeoutMs(),
+          );
+          return { moduleKey, status };
+        } catch (err) {
+          console.error(
+            `[module-registry] getStatus failed for "${moduleKey}", tenant ${tenantId}:`,
+            err instanceof Error ? err.message : err,
+          );
+          return {
+            moduleKey,
+            status: {
+              status: 'needs attention' as const,
+              reason: 'Could not check just now',
+            },
+          };
+        }
+      }),
+    );
   }
 
   // Combined, module-tagged capability list across every module that is both

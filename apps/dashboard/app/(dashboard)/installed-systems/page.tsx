@@ -5,7 +5,7 @@ import { useEnabledModules, useModuleStatuses } from "@/lib/queries";
 
 export default function InstalledSystemsPage() {
   const { data: modules, isError, isPending } = useEnabledModules();
-  const statuses = useModuleStatuses((modules ?? []).map((m) => m.moduleKey));
+  const statuses = useModuleStatuses();
 
   return (
     <div className="flex-1 p-8">
@@ -34,8 +34,8 @@ export default function InstalledSystemsPage() {
 
       {modules && modules.length > 0 && (
         <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {modules.map((m, i) => {
-            const status = statuses[i]?.data ?? null;
+          {modules.map((m) => {
+            const status = statuses.get(m.moduleKey) ?? null;
             const good = status?.status === "connected";
             const attention = status?.status === "needs attention";
             return (

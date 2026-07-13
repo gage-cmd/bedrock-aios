@@ -13,6 +13,7 @@ import {
   EnabledModule,
   ModuleRegistryService,
   ModuleSettings,
+  ModuleStatusEntry,
 } from './module-registry.service';
 
 export interface EnabledModuleWithMetadata extends EnabledModule {
@@ -45,6 +46,17 @@ export class ModuleManifestController {
           description: meta?.description ?? '',
         };
       }),
+    );
+  }
+
+  // Every enabled module's status verdict in one request. The status strip
+  // and the Installed Systems page used to fire one GET per module on every
+  // navigation; this is the batched replacement. Registered before the
+  // parameterized routes below so "status" is never captured as a moduleKey.
+  @Get('status')
+  getStatuses(@Req() req: Request): Promise<ModuleStatusEntry[]> {
+    return this.moduleRegistry.getStatusesForTenant(
+      req.tenantContext!.tenantId,
     );
   }
 

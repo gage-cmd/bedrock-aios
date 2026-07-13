@@ -124,4 +124,67 @@ describe('ModuleRegistryService', () => {
       expect(capabilities).toEqual([]);
     });
   });
+
+  describe('getStatusesForTenant', () => {
+    afterEach(() => {
+      delete process.env.MODULE_STATUS_TIMEOUT_MS;
+    });
+
+    it('returns one entry per enabled module; a throwing module degrades, a missing instance is null', async () => {
+      const alpha = service.getModuleInstance('alpha-module')!;
+      const beta = service.getModuleInstance('beta-module')!;
+      (alpha.getStatus as jest.Mock).mockResolvedValue({
+        status: 'connected',
+      });
+      (beta.getStatus as jest.Mock).mockRejectedValue(new Error('boom'));
+
+      const statuses = await service.getStatusesForTenant(capabilitiesTenantId);
+
+      expect(statuses).toEqual(
+        expect.arrayContaining([
+          { moduleKey: 'alpha-module', status: { status: 'connected' } },
+          {
+            moduleKey: 'beta-module',
+            status: {
+              status: 'needs attention',
+              reason: 'Could not check just now',
+            },
+          },
+          { moduleKey: 'ghost-module', status: null },
+        ]),
+      );
+      expect(statuses).toHaveLength(3);
+    });
+
+    it('a hung status check times out into a needs-attention entry without stalling the batch', async () => {
+      process.env.MODULE_STATUS_TIMEOUT_MS = '50';
+      const alpha = service.getModuleInstance('alpha-module')!;
+      const beta = service.getModuleInstance('beta-module')!;
+      (alpha.getStatus as jest.Mock).mockImplementation(
+        () => new Promise(() => {}),
+      );
+      (beta.getStatus as jest.Mock).mockResolvedValue({ status: 'connected' });
+
+      const statuses = await service.getStatusesForTenant(capabilitiesTenantId);
+
+      expect(statuses).toEqual(
+        expect.arrayContaining([
+          {
+            moduleKey: 'alpha-module',
+            status: {
+              status: 'needs attention',
+              reason: 'Could not check just now',
+            },
+          },
+          { moduleKey: 'beta-module', status: { status: 'connected' } },
+        ]),
+      );
+    });
+
+    it('returns an empty list for a tenant with no enabled modules', async () => {
+      const statuses = await service.getStatusesForTenant(otherTenantId);
+
+      expect(statuses).toEqual([]);
+    });
+  });
 });

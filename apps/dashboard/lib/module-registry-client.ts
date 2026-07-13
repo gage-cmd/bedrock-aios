@@ -31,22 +31,11 @@ export interface ModuleSettings {
 // Throws on failure (no session / non-OK response) rather than returning an
 // empty list, so callers can tell "genuinely no modules" apart from "the
 // request failed" -- the empty return used to render as a misleading
-// "nothing installed" state. getModuleStatus below intentionally keeps
-// degrading to null instead of throwing: it runs once per module inside a
-// Promise.all, and one module's status hiccup should show an unknown dot,
-// not take down the whole list.
+// "nothing installed" state. Status dots come from the batched
+// GET /module-manifest/status read (useModuleStatuses in lib/queries.ts),
+// which degrades per module server-side instead of per request here.
 export function listEnabledModules(): Promise<EnabledModule[]> {
   return apiFetch<EnabledModule[]>("/module-manifest");
-}
-
-export async function getModuleStatus(
-  moduleKey: string,
-): Promise<ModuleStatus | null> {
-  try {
-    return await apiFetch<ModuleStatus>(`/modules/${moduleKey}/status`);
-  } catch {
-    return null;
-  }
 }
 
 // One module's settings payload for the tenant Settings tab. Throws on failure

@@ -134,7 +134,7 @@ export function ModuleSettingsPanel({ moduleKey }: { moduleKey: string }) {
             queryKey: ["module-settings", moduleKey],
           });
           await queryClient.invalidateQueries({
-            queryKey: ["module-status", moduleKey],
+            queryKey: ["module-statuses"],
           });
         }}
       />

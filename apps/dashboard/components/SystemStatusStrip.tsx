@@ -4,7 +4,7 @@ import { useEnabledModules, useModuleStatuses } from "@/lib/queries";
 
 export function SystemStatusStrip() {
   const { data: modules, isError } = useEnabledModules();
-  const statuses = useModuleStatuses((modules ?? []).map((m) => m.moduleKey));
+  const statuses = useModuleStatuses();
 
   if (isError) {
     return (
@@ -29,8 +29,8 @@ export function SystemStatusStrip() {
       <span className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-secondary)]">
         System Status
       </span>
-      {modules.map((m, i) => {
-        const status = statuses[i]?.data ?? null;
+      {modules.map((m) => {
+        const status = statuses.get(m.moduleKey) ?? null;
         const good = status?.status === "connected";
         const attention = status?.status === "needs attention";
         return (

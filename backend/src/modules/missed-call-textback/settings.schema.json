@@ -27,7 +27,26 @@
       "title": "Text-back message template",
       "description": "Supports the {business_name} placeholder. Sent automatically the moment a call goes unanswered.",
       "default": "Hi! You just called {business_name} and we couldn't pick up. Reply here and we'll get right back to you."
+    },
+    "avgJobValue": {
+      "type": "number",
+      "title": "Average job value ($)",
+      "description": "What a typical booked job is worth to your business. Used with the booking rate to estimate the revenue each recovered call protects.",
+      "minimum": 1,
+      "default": 180
+    },
+    "bookingRatePercent": {
+      "type": "integer",
+      "title": "Booking rate (%)",
+      "description": "Of callers who get a text-back, roughly how many end up booking. Used to estimate recovered revenue.",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 35
     }
   },
-  "required": ["businessName", "destinationNumber", "textBackTemplate"]
+  "required": [
+    "businessName",
+    "destinationNumber",
+    "textBackTemplate"
+  ]
 }

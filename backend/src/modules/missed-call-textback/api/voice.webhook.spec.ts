@@ -19,6 +19,7 @@ import { VoiceController } from './voice.controller';
 import { VoiceService } from './voice.service';
 import { MissedCallTextbackService } from '../missed-call-textback.service';
 import { MessagingService } from '../../../shared/messaging/messaging.service';
+import { ValueLedgerService } from '../../../shared/value-ledger/value-ledger.service';
 import { StubSmsClient } from '../../../shared/messaging/stub-sms-client';
 import { TwilioSignatureGuard } from '../../../shared/messaging/twilio-signature.guard';
 
@@ -125,6 +126,7 @@ describe('Twilio Voice webhooks', () => {
         VoiceService,
         MissedCallTextbackService,
         TwilioSignatureGuard,
+        ValueLedgerService,
         { provide: MessagingService, useValue: messaging },
       ],
     }).compile();
@@ -137,6 +139,10 @@ describe('Twilio Voice webhooks', () => {
     const tenantIds = [tenantAId, tenantBId];
     await setupClient.query(
       `delete from activity_log where tenant_id = any($1)`,
+      [tenantIds],
+    );
+    await setupClient.query(
+      `delete from value_events where tenant_id = any($1)`,
       [tenantIds],
     );
     await setupClient.query(

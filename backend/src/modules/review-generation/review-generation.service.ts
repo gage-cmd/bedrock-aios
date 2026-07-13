@@ -6,6 +6,7 @@ import type {
   SnapshotV2,
 } from '../../core/module-registry/module-contract';
 import { MessagingService } from '../../shared/messaging/messaging.service';
+import { ValueLedgerService } from '../../shared/value-ledger/value-ledger.service';
 import {
   fillDailySeries,
   weekDelta,
@@ -63,7 +64,10 @@ export class ReviewGenerationService
 {
   private readonly pool = getSharedPool();
 
-  constructor(private readonly messaging: MessagingService) {}
+  constructor(
+    private readonly messaging: MessagingService,
+    private readonly valueLedger: ValueLedgerService,
+  ) {}
 
   async handleRequest(
     tenantId: string,
@@ -213,14 +217,15 @@ export class ReviewGenerationService
   }
 
   async getSnapshot(tenantId: string): Promise<SnapshotV2> {
-    const [counts, seriesRows, lowRatings, recent] = await Promise.all([
-      this.pool.query<{
-        requests_week: number;
-        completed_week: number;
-        avg_week: number | null;
-        avg_prior_week: number | null;
-      }>(
-        `select
+    const [counts, seriesRows, lowRatings, recent, weekValueCents] =
+      await Promise.all([
+        this.pool.query<{
+          requests_week: number;
+          completed_week: number;
+          avg_week: number | null;
+          avg_prior_week: number | null;
+        }>(
+          `select
            (select count(*)::int from review_generation.review_requests
             where tenant_id = $1 and sent_at >= now() - interval '7 days') as requests_week,
            (select count(*)::int from review_generation.review_responses
@@ -230,31 +235,32 @@ export class ReviewGenerationService
            (select avg(rating)::float from review_generation.review_responses
             where tenant_id = $1 and submitted_at >= now() - interval '14 days'
               and submitted_at < now() - interval '7 days') as avg_prior_week`,
-        [tenantId],
-      ),
-      this.pool.query<{ date: string; value: number }>(
-        `select to_char(date_trunc('day', submitted_at at time zone 'UTC'), 'YYYY-MM-DD') as date,
+          [tenantId],
+        ),
+        this.pool.query<{ date: string; value: number }>(
+          `select to_char(date_trunc('day', submitted_at at time zone 'UTC'), 'YYYY-MM-DD') as date,
                 count(*)::int as value
          from review_generation.review_responses
          where tenant_id = $1 and submitted_at >= now() - interval '14 days'
          group by 1`,
-        [tenantId],
-      ),
-      this.pool.query<{ id: string; rating: number; has_feedback: boolean }>(
-        `select id, rating, (feedback_text is not null) as has_feedback
+          [tenantId],
+        ),
+        this.pool.query<{ id: string; rating: number; has_feedback: boolean }>(
+          `select id, rating, (feedback_text is not null) as has_feedback
          from review_generation.review_responses
          where tenant_id = $1 and rating <= 3
            and submitted_at >= now() - interval '7 days'
          order by submitted_at desc limit 5`,
-        [tenantId],
-      ),
-      this.pool.query<{ rating: number; submitted_at: string }>(
-        `select rating, submitted_at from review_generation.review_responses
+          [tenantId],
+        ),
+        this.pool.query<{ rating: number; submitted_at: string }>(
+          `select rating, submitted_at from review_generation.review_responses
          where tenant_id = $1
          order by submitted_at desc limit 5`,
-        [tenantId],
-      ),
-    ]);
+          [tenantId],
+        ),
+        this.valueLedger.weeklyTotalCents(tenantId, 'review-generation'),
+      ]);
 
     const c = counts.rows[0];
     const avg = c.avg_week === null ? null : Number(c.avg_week);
@@ -268,6 +274,7 @@ export class ReviewGenerationService
           c.completed_week === 0
             ? '0 completed'
             : `${c.completed_week} completed, ${avg!.toFixed(1)}★ avg`,
+        ...(weekValueCents > 0 ? { dollarValue: weekValueCents / 100 } : {}),
       },
       metrics: [
         {

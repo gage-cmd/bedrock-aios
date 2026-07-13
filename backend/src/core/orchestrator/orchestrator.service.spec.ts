@@ -91,7 +91,10 @@ describe('OrchestratorService', () => {
         .fn()
         .mockResolvedValue([{ rating: 5, feedback_text: 'Great' }]),
       getSnapshot: jest.fn().mockResolvedValue({
-        headline: { label: 'Reviews this week', value: '2 completed, 4.5★ avg' },
+        headline: {
+          label: 'Reviews this week',
+          value: '2 completed, 4.5★ avg',
+        },
         metrics: [],
         attention: [],
         recentEvents: [],

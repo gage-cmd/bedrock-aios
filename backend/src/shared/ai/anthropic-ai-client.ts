@@ -19,9 +19,7 @@ const DEFAULT_PRICING: Record<string, { input: number; output: number }> = {
   'claude-haiku-4-5': { input: 1, output: 5 },
 };
 
-function pricingFor(
-  model: string,
-): { input: number; output: number } | null {
+function pricingFor(model: string): { input: number; output: number } | null {
   const overrides = process.env.AI_PRICING_JSON;
   if (overrides) {
     try {

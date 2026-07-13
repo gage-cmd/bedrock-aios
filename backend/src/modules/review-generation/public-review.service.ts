@@ -4,6 +4,12 @@ import {
   OnModuleDestroy,
 } from '@nestjs/common';
 import { getSharedPool, closeSharedPool } from '../../shared/db/pg-pool';
+import { ValueLedgerService } from '../../shared/value-ledger/value-ledger.service';
+
+// Estimation input for the value ledger, overridable per tenant in module
+// settings ("reviewValue", dollars): what one new public Google review is
+// worth to the business.
+export const DEFAULT_REVIEW_VALUE_DOLLARS = 25;
 
 /**
  * activity_log event vocabulary for the review-generation module
@@ -56,6 +62,8 @@ interface MatchedRequestRow {
 @Injectable()
 export class PublicReviewService implements OnModuleDestroy {
   private readonly pool = getSharedPool();
+
+  constructor(private readonly valueLedger: ValueLedgerService) {}
 
   // A single generic, information-free "not valid" response. Returned
   // identically whether the token never existed, was already completed, or
@@ -111,12 +119,14 @@ export class PublicReviewService implements OnModuleDestroy {
       // high ratings go to Google and never carry free text.
       const feedbackText = rating <= 3 ? (feedback ?? null) : null;
 
-      await client.query(
+      const insertedResponse = await client.query<{ id: string }>(
         `insert into review_generation.review_responses
             (tenant_id, request_id, rating, feedback_text, routed_to_google)
-          values ($1, $2, $3, $4, $5)`,
+          values ($1, $2, $3, $4, $5)
+          returning id`,
         [request.tenant_id, request.id, rating, feedbackText, routedToGoogle],
       );
+      const responseId = insertedResponse.rows[0].id;
 
       if (rating <= 3) {
         await client.query(
@@ -149,9 +159,10 @@ export class PublicReviewService implements OnModuleDestroy {
       }
 
       let googleReviewUrl: string | undefined;
+      let reviewValueDollars = DEFAULT_REVIEW_VALUE_DOLLARS;
       if (routedToGoogle) {
         const cfg = await client.query<{
-          config: { googleReviewUrl?: string };
+          config: { googleReviewUrl?: string; reviewValue?: number };
         }>(
           `select config from module_manifest where tenant_id = $1 and module_key = 'review-generation'`,
           [request.tenant_id],
@@ -160,9 +171,29 @@ export class PublicReviewService implements OnModuleDestroy {
         if (typeof url === 'string' && url.length > 0) {
           googleReviewUrl = url;
         }
+        const configured = cfg.rows[0]?.config?.reviewValue;
+        if (typeof configured === 'number' && configured > 0) {
+          reviewValueDollars = configured;
+        }
       }
 
       await client.query('commit');
+
+      // After commit on purpose: the review is complete whether or not the
+      // ledger write succeeds, and record() is idempotent on the response id
+      // so the backfill script can heal any gap. Only Google-routed reviews
+      // carry a value estimate -- private feedback is not revenue.
+      if (routedToGoogle) {
+        await this.valueLedger.record({
+          tenantId: request.tenant_id,
+          moduleKey: 'review-generation',
+          eventType: 'review_completed',
+          amountCents: Math.round(reviewValueDollars * 100),
+          basis: 'estimated',
+          basisNote: `configured value of one new public review: $${reviewValueDollars}`,
+          sourceRef: responseId,
+        });
+      }
 
       return { ok: true, routedToGoogle, googleReviewUrl };
     } catch (err) {

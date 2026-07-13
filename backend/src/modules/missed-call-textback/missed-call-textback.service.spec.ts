@@ -3,6 +3,7 @@ import { Client } from 'pg';
 import { MissedCallTextbackService } from './missed-call-textback.service';
 import type { MissedCallRow } from './missed-call-textback.service';
 import { MessagingService } from '../../shared/messaging/messaging.service';
+import { ValueLedgerService } from '../../shared/value-ledger/value-ledger.service';
 import { StubSmsClient } from '../../shared/messaging/stub-sms-client';
 import { SendMessageParams } from '../../shared/messaging/sms-client.interface';
 
@@ -54,13 +55,20 @@ describe('MissedCallTextbackService', () => {
     sendMessageSpy = jest.spyOn(stubClient, 'sendMessage');
     messaging = new MessagingService(stubClient);
 
-    service = new MissedCallTextbackService(messaging);
+    service = new MissedCallTextbackService(
+      messaging,
+      new ValueLedgerService(),
+    );
   });
 
   afterAll(async () => {
     const tenantIds = [connectedTenantId, needsAttentionTenantId];
     await setupClient.query(
       `delete from activity_log where tenant_id = any($1)`,
+      [tenantIds],
+    );
+    await setupClient.query(
+      `delete from value_events where tenant_id = any($1)`,
       [tenantIds],
     );
     await setupClient.query(

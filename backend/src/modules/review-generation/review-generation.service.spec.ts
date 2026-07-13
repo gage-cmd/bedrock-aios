@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { Client } from 'pg';
 import { ReviewGenerationService } from './review-generation.service';
 import { MessagingService } from '../../shared/messaging/messaging.service';
+import { ValueLedgerService } from '../../shared/value-ledger/value-ledger.service';
 
 describe('ReviewGenerationService', () => {
   let service: ReviewGenerationService;
@@ -60,13 +61,20 @@ describe('ReviewGenerationService', () => {
       sendSms: sendSmsMock,
     } as unknown as MessagingService;
 
-    service = new ReviewGenerationService(messagingMock);
+    service = new ReviewGenerationService(
+      messagingMock,
+      new ValueLedgerService(),
+    );
   });
 
   afterAll(async () => {
     const tenantIds = [connectedTenantId, needsAttentionTenantId];
     await setupClient.query(
       `delete from activity_log where tenant_id = any($1)`,
+      [tenantIds],
+    );
+    await setupClient.query(
+      `delete from value_events where tenant_id = any($1)`,
       [tenantIds],
     );
     await setupClient.query(

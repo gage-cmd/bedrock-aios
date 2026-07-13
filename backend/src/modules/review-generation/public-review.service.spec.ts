@@ -1,6 +1,7 @@
 import { Client } from 'pg';
 import { randomUUID } from 'crypto';
 import { PublicReviewService } from './public-review.service';
+import { ValueLedgerService } from '../../shared/value-ledger/value-ledger.service';
 
 // Known, fixed tokens so the tests can drive the funnel deterministically.
 // Real tokens are 64 hex chars (gen_random_bytes(32)); these match that shape.
@@ -84,12 +85,13 @@ describe('PublicReviewService (public review funnel)', () => {
       [tenantAId, contactAId, TOKEN_A, tenantBId, contactBId, TOKEN_B],
     );
 
-    service = new PublicReviewService();
+    service = new PublicReviewService(new ValueLedgerService());
   });
 
   afterAll(async () => {
     const ids = [tenantAId, tenantBId];
     await db.query('delete from activity_log where tenant_id = any($1)', [ids]);
+    await db.query('delete from value_events where tenant_id = any($1)', [ids]);
     await db.query('delete from notifications where tenant_id = any($1)', [
       ids,
     ]);

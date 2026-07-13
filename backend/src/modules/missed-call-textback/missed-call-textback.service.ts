@@ -6,6 +6,7 @@ import type {
   SnapshotV2,
 } from '../../core/module-registry/module-contract';
 import { MessagingService } from '../../shared/messaging/messaging.service';
+import { ValueLedgerService } from '../../shared/value-ledger/value-ledger.service';
 import {
   fillDailySeries,
   weekDelta,
@@ -26,6 +27,12 @@ const DEFAULT_TEXTBACK_TEMPLATE =
 
 export const DEFAULT_RING_TIMEOUT_SECONDS = 20;
 
+// Estimation inputs for the value ledger, overridable per tenant in module
+// settings. A recovered missed call is worth (average job value x booking
+// rate) -- the math every recorded event shows in its basis_note.
+export const DEFAULT_AVG_JOB_VALUE_DOLLARS = 180;
+export const DEFAULT_BOOKING_RATE_PERCENT = 35;
+
 export interface DialSettings {
   destinationNumber: string | null;
   ringTimeoutSeconds: number;
@@ -41,7 +48,10 @@ export class MissedCallTextbackService
 {
   private readonly pool = getSharedPool();
 
-  constructor(private readonly messaging: MessagingService) {}
+  constructor(
+    private readonly messaging: MessagingService,
+    private readonly valueLedger: ValueLedgerService,
+  ) {}
 
   async handleRequest(
     tenantId: string,
@@ -103,7 +113,42 @@ export class MissedCallTextbackService
       ],
     );
 
+    await this.recordRecoveryValue(tenantId, missedCall.id, config);
+
     return updated.rows[0];
+  }
+
+  // A sent text-back is the recovery signal this schema can see (there is no
+  // reply tracking yet), so the ledger event is honest about being an
+  // estimate: tenant-configured average job value x booking rate.
+  private async recordRecoveryValue(
+    tenantId: string,
+    missedCallId: string,
+    config: Record<string, unknown>,
+  ): Promise<void> {
+    const avgJobValue =
+      typeof config.avgJobValue === 'number' && config.avgJobValue > 0
+        ? config.avgJobValue
+        : DEFAULT_AVG_JOB_VALUE_DOLLARS;
+    const bookingRatePercent =
+      typeof config.bookingRatePercent === 'number' &&
+      config.bookingRatePercent > 0 &&
+      config.bookingRatePercent <= 100
+        ? config.bookingRatePercent
+        : DEFAULT_BOOKING_RATE_PERCENT;
+
+    const amountCents = Math.round(
+      avgJobValue * 100 * (bookingRatePercent / 100),
+    );
+    await this.valueLedger.record({
+      tenantId,
+      moduleKey: 'missed-call-textback',
+      eventType: 'missed_call_recovered',
+      amountCents,
+      basis: 'estimated',
+      basisNote: `avg job value $${avgJobValue} x ${bookingRatePercent}% booking rate`,
+      sourceRef: missedCallId,
+    });
   }
 
   private async getRecentMissedCalls(
@@ -118,14 +163,15 @@ export class MissedCallTextbackService
   }
 
   async getSnapshot(tenantId: string): Promise<SnapshotV2> {
-    const [counts, seriesRows, unrecovered, recent] = await Promise.all([
-      this.pool.query<{
-        recovered_week: number;
-        recovered_prior_week: number;
-        unrecovered_week: number;
-        recovered_all_time: number;
-      }>(
-        `select
+    const [counts, seriesRows, unrecovered, recent, weekValueCents] =
+      await Promise.all([
+        this.pool.query<{
+          recovered_week: number;
+          recovered_prior_week: number;
+          unrecovered_week: number;
+          recovered_all_time: number;
+        }>(
+          `select
            count(*) filter (where textback_sent and missed_at >= now() - interval '7 days')::int as recovered_week,
            count(*) filter (where textback_sent and missed_at >= now() - interval '14 days'
                             and missed_at < now() - interval '7 days')::int as recovered_prior_week,
@@ -133,42 +179,44 @@ export class MissedCallTextbackService
            count(*) filter (where textback_sent)::int as recovered_all_time
          from missed_call_textback.missed_calls
          where tenant_id = $1`,
-        [tenantId],
-      ),
-      this.pool.query<{ date: string; value: number }>(
-        `select to_char(date_trunc('day', missed_at at time zone 'UTC'), 'YYYY-MM-DD') as date,
+          [tenantId],
+        ),
+        this.pool.query<{ date: string; value: number }>(
+          `select to_char(date_trunc('day', missed_at at time zone 'UTC'), 'YYYY-MM-DD') as date,
                 count(*)::int as value
          from missed_call_textback.missed_calls
          where tenant_id = $1 and textback_sent
            and missed_at >= now() - interval '14 days'
          group by 1`,
-        [tenantId],
-      ),
-      this.pool.query<{ id: string; contact_phone: string }>(
-        `select id, contact_phone from missed_call_textback.missed_calls
+          [tenantId],
+        ),
+        this.pool.query<{ id: string; contact_phone: string }>(
+          `select id, contact_phone from missed_call_textback.missed_calls
          where tenant_id = $1 and not textback_sent
            and missed_at >= now() - interval '7 days'
          order by missed_at desc limit 5`,
-        [tenantId],
-      ),
-      this.pool.query<{
-        contact_phone: string;
-        missed_at: string;
-        textback_sent: boolean;
-      }>(
-        `select contact_phone, missed_at, textback_sent
+          [tenantId],
+        ),
+        this.pool.query<{
+          contact_phone: string;
+          missed_at: string;
+          textback_sent: boolean;
+        }>(
+          `select contact_phone, missed_at, textback_sent
          from missed_call_textback.missed_calls
          where tenant_id = $1
          order by missed_at desc limit 5`,
-        [tenantId],
-      ),
-    ]);
+          [tenantId],
+        ),
+        this.valueLedger.weeklyTotalCents(tenantId, 'missed-call-textback'),
+      ]);
 
     const c = counts.rows[0];
     return {
       headline: {
         label: 'Missed calls recovered this week',
         value: `${c.recovered_week} text-back${c.recovered_week === 1 ? '' : 's'} sent`,
+        ...(weekValueCents > 0 ? { dollarValue: weekValueCents / 100 } : {}),
       },
       metrics: [
         {

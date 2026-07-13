@@ -25,7 +25,18 @@
       "format": "email",
       "title": "Negative feedback notification email",
       "description": "Where 1-3 star private feedback gets sent. Optional for v1."
+    },
+    "reviewValue": {
+      "type": "number",
+      "title": "Value of one new review ($)",
+      "description": "What a new public Google review is worth to your business. Used to estimate the value your review engine creates.",
+      "minimum": 1,
+      "default": 25
     }
   },
-  "required": ["businessName", "googleReviewUrl", "smsTemplate"]
+  "required": [
+    "businessName",
+    "googleReviewUrl",
+    "smsTemplate"
+  ]
 }

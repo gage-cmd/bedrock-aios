@@ -137,7 +137,12 @@ export class ExecutiveOversightService implements OnModuleDestroy {
     const modules = await this.gatherModuleData(tenantId);
 
     try {
-      const sections = await this.writeReport(tenantName, week, modules);
+      const sections = await this.writeReport(
+        tenantId,
+        tenantName,
+        week,
+        modules,
+      );
       const model = process.env.REPORT_MODEL ?? 'claude-sonnet-5';
       const reportData = {
         weekOf: week,
@@ -271,6 +276,7 @@ export class ExecutiveOversightService implements OnModuleDestroy {
   }
 
   private async writeReport(
+    tenantId: string,
     tenantName: string,
     week: string,
     modules: ModuleReportData[],
@@ -296,6 +302,7 @@ export class ExecutiveOversightService implements OnModuleDestroy {
         },
       ],
       tools: [],
+      usage: { tenantId, moduleKey: 'executive-oversight' },
     });
 
     const text = response.content

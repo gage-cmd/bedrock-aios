@@ -108,6 +108,7 @@ export class OrchestratorService implements OnModuleDestroy {
         system,
         messages,
         tools: tools.map((t) => t.definition),
+        usage: { tenantId, moduleKey: 'orchestrator' },
       });
 
       const textBlocks = response.content.filter(isTextBlock);

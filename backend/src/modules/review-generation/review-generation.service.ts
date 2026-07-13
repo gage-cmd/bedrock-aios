@@ -3,9 +3,13 @@ import { getSharedPool, closeSharedPool } from '../../shared/db/pg-pool';
 import type {
   ModuleContract,
   ModuleStatus,
-  SnapshotResult,
+  SnapshotV2,
 } from '../../core/module-registry/module-contract';
 import { MessagingService } from '../../shared/messaging/messaging.service';
+import {
+  fillDailySeries,
+  weekDelta,
+} from '../../shared/snapshots/snapshot-helpers';
 
 export interface ContactRow {
   id: string;
@@ -208,22 +212,104 @@ export class ReviewGenerationService
     return result.rows[0];
   }
 
-  async getSnapshot(tenantId: string): Promise<SnapshotResult> {
-    const result = await this.pool.query<{ rating: number }>(
-      `select rating from review_generation.review_responses where tenant_id = $1 and submitted_at >= now() - interval '7 days'`,
-      [tenantId],
-    );
+  async getSnapshot(tenantId: string): Promise<SnapshotV2> {
+    const [counts, seriesRows, lowRatings, recent] = await Promise.all([
+      this.pool.query<{
+        requests_week: number;
+        completed_week: number;
+        avg_week: number | null;
+        avg_prior_week: number | null;
+      }>(
+        `select
+           (select count(*)::int from review_generation.review_requests
+            where tenant_id = $1 and sent_at >= now() - interval '7 days') as requests_week,
+           (select count(*)::int from review_generation.review_responses
+            where tenant_id = $1 and submitted_at >= now() - interval '7 days') as completed_week,
+           (select avg(rating)::float from review_generation.review_responses
+            where tenant_id = $1 and submitted_at >= now() - interval '7 days') as avg_week,
+           (select avg(rating)::float from review_generation.review_responses
+            where tenant_id = $1 and submitted_at >= now() - interval '14 days'
+              and submitted_at < now() - interval '7 days') as avg_prior_week`,
+        [tenantId],
+      ),
+      this.pool.query<{ date: string; value: number }>(
+        `select to_char(date_trunc('day', submitted_at at time zone 'UTC'), 'YYYY-MM-DD') as date,
+                count(*)::int as value
+         from review_generation.review_responses
+         where tenant_id = $1 and submitted_at >= now() - interval '14 days'
+         group by 1`,
+        [tenantId],
+      ),
+      this.pool.query<{ id: string; rating: number; has_feedback: boolean }>(
+        `select id, rating, (feedback_text is not null) as has_feedback
+         from review_generation.review_responses
+         where tenant_id = $1 and rating <= 3
+           and submitted_at >= now() - interval '7 days'
+         order by submitted_at desc limit 5`,
+        [tenantId],
+      ),
+      this.pool.query<{ rating: number; submitted_at: string }>(
+        `select rating, submitted_at from review_generation.review_responses
+         where tenant_id = $1
+         order by submitted_at desc limit 5`,
+        [tenantId],
+      ),
+    ]);
 
-    const count = result.rows.length;
-    if (count === 0) {
-      return { metric: 'Reviews this week', value: '0 completed' };
-    }
+    const c = counts.rows[0];
+    const avg = c.avg_week === null ? null : Number(c.avg_week);
+    const avgPrior =
+      c.avg_prior_week === null ? null : Number(c.avg_prior_week);
 
-    const avg =
-      result.rows.reduce((sum, row) => sum + Number(row.rating), 0) / count;
     return {
-      metric: 'Reviews this week',
-      value: `${count} completed, ${avg.toFixed(1)}★ avg`,
+      headline: {
+        label: 'Reviews completed this week',
+        value:
+          c.completed_week === 0
+            ? '0 completed'
+            : `${c.completed_week} completed, ${avg!.toFixed(1)}★ avg`,
+      },
+      metrics: [
+        {
+          key: 'requests-week',
+          label: 'Requests sent this week',
+          value: String(c.requests_week),
+        },
+        {
+          key: 'completion-rate',
+          label: 'Completion rate',
+          value:
+            c.requests_week === 0
+              ? '—'
+              : `${Math.round((c.completed_week / c.requests_week) * 100)}%`,
+        },
+        {
+          key: 'avg-rating',
+          label: 'Average rating',
+          value: avg === null ? '—' : `${avg.toFixed(1)}★`,
+          delta:
+            avg !== null && avgPrior !== null
+              ? weekDelta(Number(avg.toFixed(1)), Number(avgPrior.toFixed(1)), {
+                  unit: '★',
+                })
+              : undefined,
+        },
+      ],
+      series: {
+        label: 'Reviews completed per day',
+        points: fillDailySeries(seriesRows.rows, 14),
+      },
+      attention: lowRatings.rows.map((row) => ({
+        key: row.id,
+        text: row.has_feedback
+          ? `A ${row.rating}★ response came with private feedback to read`
+          : `A ${row.rating}★ response came in this week`,
+        href: '/installed-systems/review-generation?tab=activity',
+      })),
+      recentEvents: recent.rows.map((row) => ({
+        at: new Date(row.submitted_at).toISOString(),
+        text: `New ${row.rating}★ review completed`,
+      })),
     };
   }
 

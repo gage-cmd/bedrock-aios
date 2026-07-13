@@ -3,9 +3,13 @@ import { getSharedPool, closeSharedPool } from '../../shared/db/pg-pool';
 import type {
   ModuleContract,
   ModuleStatus,
-  SnapshotResult,
+  SnapshotV2,
 } from '../../core/module-registry/module-contract';
 import { MessagingService } from '../../shared/messaging/messaging.service';
+import {
+  fillDailySeries,
+  weekDelta,
+} from '../../shared/snapshots/snapshot-helpers';
 
 export interface MissedCallRow {
   id: string;
@@ -113,17 +117,92 @@ export class MissedCallTextbackService
     return result.rows;
   }
 
-  async getSnapshot(tenantId: string): Promise<SnapshotResult> {
-    const result = await this.pool.query<{ count: number }>(
-      `select count(*)::int as count from missed_call_textback.missed_calls
-       where tenant_id = $1 and textback_sent and missed_at >= now() - interval '7 days'`,
-      [tenantId],
-    );
+  async getSnapshot(tenantId: string): Promise<SnapshotV2> {
+    const [counts, seriesRows, unrecovered, recent] = await Promise.all([
+      this.pool.query<{
+        recovered_week: number;
+        recovered_prior_week: number;
+        unrecovered_week: number;
+        recovered_all_time: number;
+      }>(
+        `select
+           count(*) filter (where textback_sent and missed_at >= now() - interval '7 days')::int as recovered_week,
+           count(*) filter (where textback_sent and missed_at >= now() - interval '14 days'
+                            and missed_at < now() - interval '7 days')::int as recovered_prior_week,
+           count(*) filter (where not textback_sent and missed_at >= now() - interval '7 days')::int as unrecovered_week,
+           count(*) filter (where textback_sent)::int as recovered_all_time
+         from missed_call_textback.missed_calls
+         where tenant_id = $1`,
+        [tenantId],
+      ),
+      this.pool.query<{ date: string; value: number }>(
+        `select to_char(date_trunc('day', missed_at at time zone 'UTC'), 'YYYY-MM-DD') as date,
+                count(*)::int as value
+         from missed_call_textback.missed_calls
+         where tenant_id = $1 and textback_sent
+           and missed_at >= now() - interval '14 days'
+         group by 1`,
+        [tenantId],
+      ),
+      this.pool.query<{ id: string; contact_phone: string }>(
+        `select id, contact_phone from missed_call_textback.missed_calls
+         where tenant_id = $1 and not textback_sent
+           and missed_at >= now() - interval '7 days'
+         order by missed_at desc limit 5`,
+        [tenantId],
+      ),
+      this.pool.query<{
+        contact_phone: string;
+        missed_at: string;
+        textback_sent: boolean;
+      }>(
+        `select contact_phone, missed_at, textback_sent
+         from missed_call_textback.missed_calls
+         where tenant_id = $1
+         order by missed_at desc limit 5`,
+        [tenantId],
+      ),
+    ]);
 
-    const count = result.rows[0].count;
+    const c = counts.rows[0];
     return {
-      metric: 'Missed calls recovered this week',
-      value: `${count} text-back${count === 1 ? '' : 's'} sent`,
+      headline: {
+        label: 'Missed calls recovered this week',
+        value: `${c.recovered_week} text-back${c.recovered_week === 1 ? '' : 's'} sent`,
+      },
+      metrics: [
+        {
+          key: 'recovered-week',
+          label: 'Recovered this week',
+          value: String(c.recovered_week),
+          delta: weekDelta(c.recovered_week, c.recovered_prior_week),
+        },
+        {
+          key: 'awaiting-week',
+          label: 'Not yet texted back',
+          value: String(c.unrecovered_week),
+        },
+        {
+          key: 'recovered-all-time',
+          label: 'Recovered all time',
+          value: String(c.recovered_all_time),
+        },
+      ],
+      series: {
+        label: 'Text-backs sent per day',
+        points: fillDailySeries(seriesRows.rows, 14),
+      },
+      attention: unrecovered.rows.map((row) => ({
+        key: row.id,
+        text: `${row.contact_phone} called and has not been texted back`,
+        href: '/installed-systems/missed-call-textback?tab=activity',
+      })),
+      recentEvents: recent.rows.map((row) => ({
+        at: new Date(row.missed_at).toISOString(),
+        text: row.textback_sent
+          ? `Missed call from ${row.contact_phone} — text-back sent`
+          : `Missed call from ${row.contact_phone} — not yet texted back`,
+      })),
     };
   }
 

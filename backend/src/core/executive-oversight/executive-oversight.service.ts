@@ -224,8 +224,8 @@ export class ExecutiveOversightService implements OnModuleDestroy {
         moduleKey,
         available: true,
         capabilities,
-        metric: snapshot.metric,
-        value: snapshot.value,
+        metric: snapshot.headline.label,
+        value: snapshot.headline.value,
         activity,
       };
     } catch (err) {

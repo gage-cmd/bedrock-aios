@@ -183,17 +183,35 @@ describe('ReviewGenerationService', () => {
   });
 
   describe('getSnapshot', () => {
-    it("summarizes this week's completed reviews with an average rating", async () => {
+    it("summarizes this week's completed reviews in the headline", async () => {
       const snapshot = await service.getSnapshot(connectedTenantId);
 
-      expect(snapshot.metric).toBe('Reviews this week');
-      expect(snapshot.value).toMatch(/^\d+ completed, \d\.\d★ avg$/);
+      expect(snapshot.headline.label).toBe('Reviews completed this week');
+      expect(snapshot.headline.value).toMatch(/^\d+ completed, \d\.\d★ avg$/);
     });
 
-    it('reports zero completed when there are no responses in the window', async () => {
+    it('returns the full v2 shape: metrics, dense series, events', async () => {
+      const snapshot = await service.getSnapshot(connectedTenantId);
+
+      expect(snapshot.metrics.map((m) => m.key)).toEqual([
+        'requests-week',
+        'completion-rate',
+        'avg-rating',
+      ]);
+      expect(snapshot.series?.points).toHaveLength(14);
+      expect(snapshot.recentEvents.length).toBeGreaterThanOrEqual(1);
+      expect(snapshot.recentEvents[0].text).toMatch(
+        /^New \d★ review completed$/,
+      );
+    });
+
+    it('reports zero completed and placeholder metrics when the window is empty', async () => {
       const snapshot = await service.getSnapshot(needsAttentionTenantId);
 
-      expect(snapshot.value).toBe('0 completed');
+      expect(snapshot.headline.value).toBe('0 completed');
+      const avgMetric = snapshot.metrics.find((m) => m.key === 'avg-rating');
+      expect(avgMetric?.value).toBe('—');
+      expect(avgMetric?.delta).toBeUndefined();
     });
   });
 

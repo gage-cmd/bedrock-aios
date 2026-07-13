@@ -28,11 +28,16 @@ function finalTurn(): AiResponse {
 
 function mockModule(
   capabilities: string[],
-  snapshot: { metric: string; value: string },
+  headline: { label: string; value: string },
 ): jest.Mocked<Required<ModuleContract>> {
   return {
     handleRequest: jest.fn(),
-    getSnapshot: jest.fn().mockResolvedValue(snapshot),
+    getSnapshot: jest.fn().mockResolvedValue({
+      headline,
+      metrics: [],
+      attention: [],
+      recentEvents: [],
+    }),
     getStatus: jest.fn().mockResolvedValue({ status: 'connected' }),
     getCapabilities: jest.fn().mockReturnValue(capabilities),
     getQueryableIntents: jest.fn().mockReturnValue([]),
@@ -94,11 +99,11 @@ describe('ExecutiveOversightService', () => {
 
   beforeEach(() => {
     reviewModule = mockModule(['How many reviews were requested this week'], {
-      metric: 'Reviews this week',
+      label: 'Reviews this week',
       value: '4 completed, 4.8 avg',
     });
     missedCallModule = mockModule(['How many missed calls were recovered'], {
-      metric: 'Missed calls recovered',
+      label: 'Missed calls recovered',
       value: '3 of 5',
     });
     registry.registerModule('review-generation', reviewModule);

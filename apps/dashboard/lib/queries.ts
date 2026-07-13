@@ -40,9 +40,33 @@ export function useModuleStatuses() {
   return byKey;
 }
 
-export interface Snapshot {
-  metric: string;
+// Snapshot Contract v2 -- mirrors the backend's SnapshotV2 in
+// core/module-registry/module-contract.ts.
+export interface SnapshotDelta {
+  direction: "up" | "down" | "flat";
+  text: string;
+  good: boolean;
+}
+
+export interface SnapshotMetric {
+  key: string;
+  label: string;
   value: string;
+  delta?: SnapshotDelta;
+}
+
+export interface SnapshotAttentionItem {
+  key: string;
+  text: string;
+  href?: string;
+}
+
+export interface Snapshot {
+  headline: { label: string; value: string; dollarValue?: number };
+  metrics: SnapshotMetric[];
+  series?: { label: string; points: Array<{ date: string; value: number }> };
+  attention: SnapshotAttentionItem[];
+  recentEvents: Array<{ at: string; text: string }>;
 }
 
 export function useModuleSnapshot(moduleKey: string) {

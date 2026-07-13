@@ -91,8 +91,10 @@ describe('OrchestratorService', () => {
         .fn()
         .mockResolvedValue([{ rating: 5, feedback_text: 'Great' }]),
       getSnapshot: jest.fn().mockResolvedValue({
-        metric: 'Reviews this week',
-        value: '2 completed, 4.5★ avg',
+        headline: { label: 'Reviews this week', value: '2 completed, 4.5★ avg' },
+        metrics: [],
+        attention: [],
+        recentEvents: [],
       }),
       getStatus: jest.fn().mockResolvedValue({ status: 'connected' }),
       getCapabilities: jest
@@ -115,8 +117,13 @@ describe('OrchestratorService', () => {
           { contact_phone: '+15550001111', textback_sent: true },
         ]),
       getSnapshot: jest.fn().mockResolvedValue({
-        metric: 'Missed calls recovered this week',
-        value: '3 text-backs sent',
+        headline: {
+          label: 'Missed calls recovered this week',
+          value: '3 text-backs sent',
+        },
+        metrics: [],
+        attention: [],
+        recentEvents: [],
       }),
       getStatus: jest.fn().mockResolvedValue({ status: 'connected' }),
       getCapabilities: jest
@@ -176,8 +183,10 @@ describe('OrchestratorService', () => {
     expect(results).toHaveLength(1);
     expect(results[0].is_error).toBeUndefined();
     expect(JSON.parse(results[0].content)).toEqual({
-      metric: 'Reviews this week',
-      value: '2 completed, 4.5★ avg',
+      headline: { label: 'Reviews this week', value: '2 completed, 4.5★ avg' },
+      metrics: [],
+      attention: [],
+      recentEvents: [],
     });
   });
 

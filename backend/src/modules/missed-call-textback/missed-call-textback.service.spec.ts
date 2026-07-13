@@ -157,19 +157,42 @@ describe('MissedCallTextbackService', () => {
   });
 
   describe('getSnapshot', () => {
-    it("counts this week's successful text-backs", async () => {
+    it("counts this week's successful text-backs in the headline", async () => {
       const snapshot = await service.getSnapshot(connectedTenantId);
 
-      expect(snapshot.metric).toBe('Missed calls recovered this week');
-      expect(snapshot.value).toBe('1 text-back sent');
+      expect(snapshot.headline.label).toBe('Missed calls recovered this week');
+      expect(snapshot.headline.value).toBe('1 text-back sent');
     });
 
-    it('does not count missed calls whose text-back never went out', async () => {
+    it('returns the full v2 shape: metrics, dense series, events', async () => {
+      const snapshot = await service.getSnapshot(connectedTenantId);
+
+      expect(snapshot.metrics.map((m) => m.key)).toEqual([
+        'recovered-week',
+        'awaiting-week',
+        'recovered-all-time',
+      ]);
+      expect(snapshot.metrics[0].value).toBe('1');
+      // Dense 14-day series regardless of how sparse the data is.
+      expect(snapshot.series?.points).toHaveLength(14);
+      expect(
+        snapshot.series?.points.reduce((sum, p) => sum + p.value, 0),
+      ).toBeGreaterThanOrEqual(1);
+      expect(snapshot.recentEvents.length).toBeGreaterThanOrEqual(1);
+      expect(snapshot.recentEvents[0].text).toContain('Missed call from');
+    });
+
+    it('surfaces un-texted missed calls as attention items, not recoveries', async () => {
       // This tenant has exactly one missed_calls row, from the failed-send
       // test above -- textback_sent = false, so it must not be "recovered".
       const snapshot = await service.getSnapshot(needsAttentionTenantId);
 
-      expect(snapshot.value).toBe('0 text-backs sent');
+      expect(snapshot.headline.value).toBe('0 text-backs sent');
+      expect(snapshot.attention).toHaveLength(1);
+      expect(snapshot.attention[0].text).toContain('has not been texted back');
+      expect(snapshot.attention[0].href).toBe(
+        '/installed-systems/missed-call-textback?tab=activity',
+      );
     });
   });
 

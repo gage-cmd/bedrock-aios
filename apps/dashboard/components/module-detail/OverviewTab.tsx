@@ -29,7 +29,7 @@ export function OverviewTab({ moduleKey }: { moduleKey: string }) {
         </div>
       )}
 
-      {snapshot && <StatBlock label={snapshot.metric} value={snapshot.value} />}
+      {snapshot && <StatBlock label={snapshot.headline.label} value={snapshot.headline.value} />}
     </Card>
   );
 }

@@ -29,7 +29,7 @@ export function MissedCallTextbackWidget() {
 
       {snapshot && (
         <div className="mt-3">
-          <StatBlock label={snapshot.metric} value={snapshot.value} />
+          <StatBlock label={snapshot.headline.label} value={snapshot.headline.value} />
         </div>
       )}
     </Card>
